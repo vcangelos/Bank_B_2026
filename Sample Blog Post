@@ -1,0 +1,21 @@
+“A Small Banking App That Teaches Good Java Habits”
+
+Most student projects fail for one reason: they mix UI, business rules, and data in one giant main() method. 
+This bank simulation fixes that by using a clean separation:
+
+Model layer: Customer, BankAccount, Transaction
+Service layer: BankService (single place for rules)
+App layer: BankApp (menu + input only)
+
+That structure is intentionally “enterprise-like” without being heavy. The payoff is immediate:
+
+rules are consistent (validation happens once)
+features are easier to add (e.g., interest, fees, persistence)
+testing becomes straightforward (you can test BankService without the console UI)
+
+Transactions are treated as first-class records. 
+Instead of just changing balance, the app also writes a Transaction entry, 
+which means you can always explain why a balance changed—exactly the kind of 
+traceability real systems need.
+
+If you only skim one thing: keep the console UI dumb and put all logic in BankService.
