@@ -1,57 +1,65 @@
-Goal
-----
-Validate the system behaves correctly for common flows: onboarding, deposits, withdrawals, transfers, and audit trail.
+# Minimum Requirements (MVP)
 
-Scenario A — New customer + checking
------------------------------------
-Inputs
+This document defines the **minimum expected functionality** for the XYZ Bank project.
+If all items pass, the project meets baseline completion standards.
 
-name: Jordan Lee
-PIN: 1234
-open checking
+---
 
-Expected
---------
-customer ID generated
-checking account number generated
-balance starts at 0.00
+## 1) Core User Flows
 
-Scenario B — Deposit and withdraw
----------------------------------
-Actions
+### Customer Setup
+- [ ] User can create a customer with a **name** and a **4-digit PIN**
+- [ ] System generates and displays a **customer ID**
+- [ ] Invalid PIN formats are rejected with a clear message
 
-deposit 200.00
-withdraw 50.00
+### Accounts
+- [ ] User can open a **Checking** account
+- [ ] User can open a **Savings** account
+- [ ] New accounts start with a **0.00** balance
+- [ ] Each account has a unique **account number**
 
-Expected
---------
-balance = 150.00
-two transactions recorded:
-DEPOSIT 200.00
-WITHDRAW 50.00
+---
 
-Scenario C — Invalid withdrawal
--------------------------------
-Action
+## 2) Banking Operations
 
-withdraw 1000.00 (balance is 150.00)
+### Deposit
+- [ ] Deposits must be **> 0**
+- [ ] Balance updates correctly after deposit
+- [ ] A deposit creates a **Transaction** record
 
-Expected
---------
-operation rejected (InsufficientFunds)
-balance unchanged
-no transaction recorded for failed operation
+### Withdraw
+- [ ] Withdrawals must be **> 0**
+- [ ] Withdrawals must not exceed balance (**no overdrafts**)
+- [ ] Balance updates correctly after withdrawal
+- [ ] A successful withdrawal creates a **Transaction** record
+- [ ] A failed withdrawal does **not** create a transaction
 
-Scenario D — Transfer to savings
--------------------------------
-Actions
+### Transfer
+- [ ] Transfers must be **> 0**
+- [ ] Transfers must not exceed source balance
+- [ ] Transfers update both accounts correctly
+- [ ] Transfers are recorded (either in both accounts or a shared log)
 
-open savings
-transfer 25.00 from checking → savings
+---
 
-Expected
---------
-checking balance = 125.00
-savings balance = 25.00
+## 3) Transaction History / Audit Trail
+- [ ] User can view recent transactions for an account
+- [ ] Each transaction shows at minimum:
+  - [ ] type (deposit/withdraw/transfer)
+  - [ ] amount
+  - [ ] timestamp (or sequence number if you prefer)
 
-transfer recorded in both accounts’ histories (or one shared record if you design it that way)
+---
+
+## 4) Input Validation & UX
+- [ ] Menu handles invalid choices without crashing
+- [ ] Amount inputs reject non-numeric or invalid values gracefully
+- [ ] Program does not terminate unexpectedly during normal use
+
+---
+
+## 5) Code Quality (Baseline)
+- [ ] Uses **classes** for Customer and Accounts (not everything in main)
+- [ ] Fields are **private** with getters/setters as appropriate
+- [ ] Business logic is centralized (e.g., `BankService`)
+- [ ] Source files are organized and named clearly
