@@ -1,0 +1,41 @@
+Javadoc-styl
+
+Core Types
+----------
+BankService (primary façade)
+Customer createCustomer(String name, String pin)
+Customer authenticate(String customerId, String pin)
+CheckingAccount openChecking(Customer c)
+SavingsAccount openSavings(Customer c)
+void deposit(BankAccount acct, double amount)
+void withdraw(BankAccount acct, double amount)
+void transfer(BankAccount from, BankAccount to, double amount)
+List<Transaction> getTransactions(BankAccount acct, int limit)
+
+Customer
+-------
+String getId()
+String getName()
+List<BankAccount> getAccounts()
+Optional<BankAccount> findAccountByNumber(String accountNumber)
+
+BankAccount (abstract)
+----------------------
+String getAccountNumber()
+double getBalance()
+AccountType getType()
+void apply(Transaction t) (internal)
+
+Transaction
+-----------
+TransactionType getType() (DEPOSIT/WITHDRAW/TRANSFER)
+double getAmount()
+String getTimestamp()
+String getNote()
+
+Exceptions (recommended)
+------------------------
+InvalidAmountException (≤ 0 amounts)
+InsufficientFundsException
+AuthenticationException
+NotFoundException
