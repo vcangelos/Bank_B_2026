@@ -1,0 +1,45 @@
+Sample Tutorial (quick “build”)
+
+Step 1 — Model your domain
+--------------------------
+Create:
+
+Customer
+BankAccount (base)
+CheckingAccount, SavingsAccount
+Transaction
+Keep fields private, add getters, and use constructors for initialization.
+
+Step 2 — Enforce rules centrally
+--------------------------------
+Put all business rules in BankService:
+validate amount
+check funds
+record transactions
+
+Step 3 — Make the UI dumb
+------------------------
+BankApp should only:
+print menus
+read user input
+call BankService
+display results
+
+Step 4 — Add transaction logging
+--------------------------------
+Every deposit/withdraw/transfer should create a Transaction object and store it in an ArrayList.
+
+Step 5 — Test with scripts
+--------------------------
+Use a few “known-good” input scenarios:
+deposit 100, withdraw 40 → balance 60
+Withdraw 100 from balance 50 → reject
+transfer 25 from checking to savings → both balances correct
+
+Step 6 — Add one extension
+-------------------------
+Pick one:
+PIN lockout after 3 failures
+Savings interest
+Monthly checking fee
+File persistence
