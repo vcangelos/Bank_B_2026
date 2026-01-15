@@ -2,7 +2,7 @@
 This is the repository for the 2026 AP Computer Science A Bank Agile Management Project. All student files will be pushed and committed here. 
 
 This project utilizes all aspects of Agile Management and the usage of a Trello Workboard.
-# Panther Bank (AP Java Bank Project)
+# XYZ Bank (AP Java Bank Project)
 
 XYZ Bank is a console-based banking simulation built in Java for an AP Computer Science A–style project.  
 Users can create accounts, log in, deposit, withdraw, transfer funds, and view transaction history.
