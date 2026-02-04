@@ -1,4 +1,5 @@
 //prototype
+//The goal here is to create setters and getters with a constructor.
 public class SavingsAccount
 {
     //Variables
@@ -6,12 +7,12 @@ public class SavingsAccount
     
     public SavingsAccount(Customer c) //Work in progress.
     {
-        
+        //TODO
         
     }
     
-    public int getSavings() //this will return savings.
-    {
+    public double getSavings() //this will return savings.
+    { //Might be subject to change
         return savings;
     }
     public void setSavings(double savings) //This will set Savings the private field to the parameter savings.
