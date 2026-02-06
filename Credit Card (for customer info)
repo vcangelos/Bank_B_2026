@@ -1,0 +1,18 @@
+public class CreditCard {
+
+    private int creditScore;
+    private double balance;
+    private double amountOwed;
+
+    public CreditCard(int creditScore, double balance, double amountOwed) {
+        this.creditScore = creditScore;
+        this.balance = balance;
+        this.amountOwed = amountOwed;
+    }
+
+    public void display() {
+        System.out.println("Credit Score: " + creditScore);
+        System.out.println("Credit Card Balance: $" + balance);
+        System.out.println("Amount Owed: $" + amountOwed);
+    }
+}
