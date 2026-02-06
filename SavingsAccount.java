@@ -3,12 +3,19 @@
 public class SavingsAccount
 {
     //Variables
-    private double savings;
+    private double savings; //this is our savings balance which will start in a range if the customer first creates their account in about 100-300
+    private double overDraftFee = 25; //it'll start with 25$
     
+
+    public SavingsAccount()
+    {
+        savings = 100.00; //make savings start in 100 when wanting to start with a default starting value.
+
+    }
+
     public SavingsAccount(Customer c) //Work in progress.
     {
-        //TODO
-        
+    //TODO    
     }
     
     public double getSavings() //this will return savings.
@@ -19,5 +26,16 @@ public class SavingsAccount
     {
         this.savings = savings;
     }
+    public double withdrawSavings(double amt) //withdraw system that records the ammount.
+    {   
+        if(amt < savings)
+        {
+        return;
+        }
+    else{
+        return savings -= amt;
+        }   
+    }
+
     
 }
