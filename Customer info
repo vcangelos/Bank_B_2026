@@ -1,1 +1,62 @@
-
+import java.util.Scanner;
+public class BankApp {
+   public static void main(String[] args) {
+       Scanner input = new Scanner(System.in);
+       // Enter customer ID
+       System.out.print("Enter Customer ID: ");
+       int id = input.nextInt();
+       input.nextLine();
+       // Create customer
+       Customer customer = new Customer(id, "Jane Doe");
+       // Create accounts
+       Savings savings = new Savings();
+       MoneyMarket moneyMarket = new MoneyMarket();
+       CreditCard creditCard = new CreditCard();
+       Mortgage mortgage = new Mortgage();
+       HomeEquity homeEquity = new HomeEquity();
+       AutoLoan autoLoan = new AutoLoan();
+       int choice;
+       do {
+           System.out.println("\n--- Bank Menu ---");
+           System.out.println("1. Customer Information");
+           System.out.println("2. Savings");
+           System.out.println("3. Money Market");
+           System.out.println("4. Credit Card");
+           System.out.println("5. Mortgage");
+           System.out.println("6. Home Equity");
+           System.out.println("7. Automobile Loan");
+           System.out.println("0. Exit");
+           System.out.print("Choose an option: ");
+           choice = input.nextInt();
+           switch (choice) {
+               case 1:
+                   customer.displayCustomerInfo();
+                   break;
+               case 2:
+                   savings.display();
+                   break;
+               case 3:
+                   moneyMarket.display();
+                   break;
+               case 4:
+                   creditCard.display();
+                   break;
+               case 5:
+                   mortgage.display();
+                   break;
+               case 6:
+                   homeEquity.display();
+                   break;
+               case 7:
+                   autoLoan.display();
+                   break;
+               case 0:
+                   System.out.println("Thank you for using the bank system.");
+                   break;
+               default:
+                   System.out.println("Invalid choice.");
+           }
+       } while (choice != 0);
+       input.close();
+   }
+}
