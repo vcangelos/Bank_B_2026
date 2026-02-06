@@ -27,13 +27,13 @@ public class SavingsAccount
         this.savings = savings;
     }
     public double withdrawSavings(double amt) //withdraw system that records the ammount.
-    {   
-        if(amt < savings)
+    {
+        if(savings >= amt)
         {
-        return;
+        return savings -= amt;
         }
     else{
-        return savings -= amt;
+        //this needs work.
         }   
     }
 
