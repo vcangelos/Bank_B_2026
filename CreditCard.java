@@ -1,12 +1,18 @@
 public class CreditCard {
 
-    // Instance variables (generic card info)
+    // Existing instance variables
     private String cardNumber;
     private int cvv;
     private String expirationDate;
     private double balance;
     private boolean isOpen;
     private String cardType;
+    private double creditLimit = 2000.0;
+    private double minimumSpend = 300.0;
+    private double totalSpent = 0.0;
+    private double overLimitFee = 35.0;
+    private boolean overLimitPenaltyApplied = false;
+
 
     // Constructor (Opening a credit card)
     public CreditCard(String cardNumber, int cvv, String expirationDate) {
@@ -36,7 +42,35 @@ public class CreditCard {
         }
     }
 
-    // Add balance
+    // 🔹 Generic charge handler
+    private void processPurchase(double amount) {
+        if (isOpen && amount <= getAvailableCredit()) {
+            balance += amount;
+            totalSpent += amount;
+            System.out.println("Purchase approved: $" + amount);
+        } else {
+            System.out.println("Purchase denied.");
+        }
+    }
+
+    // 🔹 Purchase types
+    public void swipe(double amount) {
+        processPurchase(amount);
+    }
+
+    public void tap(double amount) {
+        processPurchase(amount);
+    }
+
+    public void digitalPay(double amount) {
+        processPurchase(amount);
+    }
+
+    public void onlinePurchase(double amount) {
+        processPurchase(amount);
+    }
+
+    // Add balance (kept)
     public void addCharge(double amount) {
         if (isOpen) {
             balance += amount;
@@ -51,7 +85,27 @@ public class CreditCard {
         }
     }
 
-    // Closing
+    // 🔹 Available credit
+    public double getAvailableCredit() {
+        return creditLimit - balance;
+    }
+
+    // 🔹 Check minimum spend
+    public void checkMinimumSpend() {
+        if (totalSpent < minimumSpend) {
+            isOpen = false;
+            System.out.println("Account closed: minimum spend not met.");
+        } else {
+            System.out.println("Minimum spend requirement met.");
+        }
+    }
+
+    // Monthly Spending Limit
+    public boolean monthlySpendingLimit(double amount) {
+        return totalSpent + amount <= creditLimit;
+    }
+
+        // Closing (existing requirement)
     public boolean closeAccount() {
         if (balance == 0) {
             isOpen = false;
@@ -59,6 +113,15 @@ public class CreditCard {
         }
         return false;
     }
+
+  // Incur Penalties
+      public void incurPenalties();
+        if (totalSpent > creditLimit) {
+            balance =+ overLimitFee;
+
+
+    }
+
 
 
     // Getters
@@ -80,6 +143,7 @@ public class CreditCard {
         System.out.println("Card Number: " + cardNumber);
         System.out.println("Expiration Date: " + expirationDate);
         System.out.println("Balance: $" + balance);
+        System.out.println("Available Credit: $" + getAvailableCredit());
         System.out.println("Account Status: " + (isOpen ? "Open" : "Closed"));
     }
 }
