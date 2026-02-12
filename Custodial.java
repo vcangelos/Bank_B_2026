@@ -1,9 +1,12 @@
-import java.util.Scanner;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit; //Class of date)//
+import java.util.Scanner; //Class of date format)//
 
 public class Custodial {
     private final String accountNumber;
     private int minorAge;
     private double balance;
+    private final LocalDate accountCreationDate; // Set account creation date to current date in (year-month-day format)//
     Scanner scanner = new Scanner(System.in);
 
     public Custodial() {
@@ -11,7 +14,8 @@ public class Custodial {
         accountNumber = scanner.nextLine(); 
         System.out.print("Enter minor's age: ");
         minorAge = scanner.nextInt();
-        if(minorAge > 18) {
+        accountCreationDate = LocalDate.now();
+        if(minorAge >= 18) {
             throw new IllegalArgumentException("Can not create account. Ensure minor is below 18 years of age.");
         }
         System.out.print("Enter initial deposit amount: ");
@@ -29,6 +33,7 @@ public class Custodial {
             minorAge = age;
             balance = initialDeposit;
         }
+        accountCreationDate = LocalDate.now();
         }
     public void custodialDeposit(double amount) {
         if (amount <= 0) {
@@ -61,13 +66,20 @@ public class Custodial {
     public double getBalance() {
         return balance;
     }
-    public boolean upgradeCustodial() {
+    public void updateTime() {
+        LocalDate currentDate = LocalDate.now();
+        long yearsElapsed = ChronoUnit.YEARS.between(accountCreationDate, currentDate);
+        minorAge += yearsElapsed;
         if (minorAge >= 18) {
-            System.out.println("Account eligible for upgrade to regular account.");
-            return true;
+            System.out.println("Minor has reached adulthood. Account can be transferred to a regular account.");
         } else {
-            System.out.println("Account not eligible for upgrade. Minor is still under 18.");
-            return false;
+            System.out.println("Minor is still underage. " + (18 - minorAge) + " years remaining until adulthood.");
+    }
+        applyInterest(yearsElapsed);
+    }
+    private void applyInterest(long years) {
+        double interestRate = 0.02; // 2% annual interest rate
+        balance = balance * Math.pow(1 + interestRate, years); //Compound interest formula (A = P(1 + r/n)^(nt))//
         }
     }
-}
+
