@@ -1,12 +1,19 @@
 public class CreditCard {
 
-    // Existing instance variables
+
+    //Notes
+    // Will add random import to generate CardNumber and CVV
+    // Will implement local date import to automatically read expiration date
+
+    
+    // Instance Variables
     private String cardNumber;
     private int cvv;
     private String expirationDate;
     private double balance;
     private boolean isOpen;
     private String cardType;
+    private double creditScore;
     private double creditLimit = 2000.0;
     private double minimumSpend = 300.0;
     private double totalSpent = 0.0;
@@ -14,7 +21,8 @@ public class CreditCard {
     private boolean overLimitPenaltyApplied = false;
 
 
-    // Constructor (Opening a credit card)
+
+    // Constructor
     public CreditCard(String cardNumber, int cvv, String expirationDate) {
         this.cardNumber = cardNumber;
         this.cvv = cvv;
@@ -24,36 +32,55 @@ public class CreditCard {
         this.cardType = determineCardType(cardNumber);
     }
 
-    // Determines card type based on first digit
+
+    // Determines card type using if-else instead of switch
     private String determineCardType(String cardNumber) {
         char firstDigit = cardNumber.charAt(0);
 
-        switch (firstDigit) {
-            case '3':
-                return "American Express";
-            case '4':
-                return "Visa";
-            case '5':
-                return "MasterCard";
-            case '6':
-                return "Discover";
-            default:
-                return "Unknown Card Type";
+        if (firstDigit == '3') {
+            return "American Express";
+        }
+        else if (firstDigit == '4') {
+            return "Visa";
+        }
+        else if (firstDigit == '5') {
+            return "MasterCard";
+        }
+        else if (firstDigit == '6') {
+            return "Discover";
+        }
+        else {
+            return "Unknown Card Type";
         }
     }
 
-    // 🔹 Generic charge handler
+
+
+    // Purchase Processing
     private void processPurchase(double amount) {
-        if (isOpen && amount <= getAvailableCredit()) {
+
+        if (!isOpen) {
+            System.out.println("Purchase denied. Account is closed.");
+            return;
+        }
+
+        if (!monthlySpendingLimit(amount)) {
+            System.out.println("Purchase denied. Monthly limit exceeded.");
+            incurPenalties();
+            return;
+        }
+
+        if (amount <= getAvailableCredit()) {
             balance += amount;
             totalSpent += amount;
             System.out.println("Purchase approved: $" + amount);
         } else {
-            System.out.println("Purchase denied.");
+            System.out.println("Purchase denied. Not enough available credit.");
         }
     }
 
-    // 🔹 Purchase types
+
+    // Purchase Methods
     public void swipe(double amount) {
         processPurchase(amount);
     }
@@ -70,27 +97,30 @@ public class CreditCard {
         processPurchase(amount);
     }
 
-    // Add balance (kept)
-    public void addCharge(double amount) {
-        if (isOpen) {
-            balance += amount;
-        }
-    }
 
-    // Pay balance
+    // Payments
     public void makePayment(double amount) {
         balance -= amount;
+
         if (balance < 0) {
             balance = 0;
         }
+
+        System.out.println("Payment made: $" + amount);
     }
 
-    // 🔹 Available credit
+
+    // Credit & Limits
     public double getAvailableCredit() {
         return creditLimit - balance;
     }
 
-    // 🔹 Check minimum spend
+    public boolean monthlySpendingLimit(double amount) {
+        return totalSpent + amount <= creditLimit;
+    }
+
+
+    // Minimum Spend Check
     public void checkMinimumSpend() {
         if (totalSpent < minimumSpend) {
             isOpen = false;
@@ -100,12 +130,18 @@ public class CreditCard {
         }
     }
 
-    // Monthly Spending Limit
-    public boolean monthlySpendingLimit(double amount) {
-        return totalSpent + amount <= creditLimit;
+
+    // Penalties
+    public void incurPenalties() {
+        if (!overLimitPenaltyApplied) {
+            balance += overLimitFee;
+            overLimitPenaltyApplied = true;
+            System.out.println("Over-limit fee applied: $" + overLimitFee);
+        }
     }
 
-        // Closing (existing requirement)
+
+    // Close Account
     public boolean closeAccount() {
         if (balance == 0) {
             isOpen = false;
@@ -113,15 +149,6 @@ public class CreditCard {
         }
         return false;
     }
-
-  // Incur Penalties
-      public void incurPenalties();
-        if (totalSpent > creditLimit) {
-            balance =+ overLimitFee;
-
-
-    }
-
 
 
     // Getters
@@ -137,7 +164,8 @@ public class CreditCard {
         return cardType;
     }
 
-    // Display card info
+
+    // Display Info
     public void displayCardInfo() {
         System.out.println("Card Type: " + cardType);
         System.out.println("Card Number: " + cardNumber);
