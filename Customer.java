@@ -9,20 +9,20 @@ public class Customer {
   private double minDeposit;
 
 
-
-
-
-
-
-    public void Customer()
+    public void Customer(String firstName, String lastName, int SSN, String DOB, String email, int phoneNumber, double minDeposit)
     {
-      //make csv for initializing customer or smth
+      this.firstName = firstName;
+      this.lastName = lastName;
+      this.SSN = SSN;
+      this.DOB = DOB;
+      this.email = email;
+      this.phoneNumber = phoneNumber;
+      this.minDeposit = minDeposit;
     }
     //ok so input a username that we will pull from the csv
-    public void Customer(String userName)
+    public void getRecords(String email)
     {
-
-      //
+      
     }
 }
 
