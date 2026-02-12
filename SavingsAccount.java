@@ -1,5 +1,7 @@
-
 //Savings Account: is where you hold on to your money and in a while you can get interest for holding that money within a specific time period.
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.*;
 public class SavingsAccount
 {
     //Variables
@@ -29,41 +31,41 @@ public class SavingsAccount
     {
         this.savings = savings;
     }
-    public double depositSavings(int depositamt)
+    public double depositSavings(double depositamt)
     {
-        if(depositamt < 0)
+        if(depositamt > 0)
         {
-            return depositamt = 0;
-        }
-        else{
             return savings += depositamt;
         }
+        else{
+
+            System.out.println("Deposit has to be a positive.");
+        }
+        return savings;
     }
 
     public double withdrawSavings(double amt, String choice) //withdraw system that records the amount.
     {
         switch(choice) //This is going to change the intent for this is if the user picks "Checking" then subtract savings from the amt that was placed and the checking account managers add that amt value otherwise if "Savings" we'll add the value from amt and the checking account people would just subtract on their part.
         {   
-            case "Checking": //if we're doing Savings TO checking then subtract savings with amt.
-                if(savings >= amt){
-                    return savings -= amt; 
+            case "Checking": //"Checking" means that you're choosing to withdraw savings to checking
+                if(amt > 0 && savings >= amt){//
+                    savings -= amt; 
                 }
                 else{
-                    System.out.println("Amount is low.");
-                    return savings; //this is going to be here temporarily.
+                    System.out.println("Incorrect amount must be less than savings AND greater than 0");                     
                 }
             break;
             case "Savings": //CHECKING to Savings would simply add amt with savings.
-                if(saving >= amt)
-                {
-                    return savings += amt;
-                }
-            else{
-                return System.out.println("Amount is Low");
-                }
-                
+                    if(amt > 0)
+                    {
+                        savings += amt;
+                    }
+                    break;
+            default:
+                System.out.println("Invalid choose either Checking or Savings");
+                break;
+            }
+            return savings;                
         }
     }
-
-    
-}
