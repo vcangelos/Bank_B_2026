@@ -1,16 +1,14 @@
 //Savings Account: is where you hold on to your money and in a while you can get interest for holding that money within a specific time period.
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.*;
+import java.util.*; //TODO 
 public class SavingsAccount
 {
     //Variables
     private double savings; //this is our savings balance which will start in a range if the customer first creates their account in about 100-300 $
-    private double overDraftFee = 35; //it'll start with 25$
+    private double overDraftFee = 35; //it'll start with 35$
     private double minBalanceFee = 30; //minimum balance fee is 30 dollars.
     private double monthlyFee = 12; //monthly fee is 12 dollars.
     private double yearlyFee = 48; //48 dollars.
-    
+    private double userid; //current userID lets say they registered or they were recent the constructor will use that and make THIS field equal to that. 
 
     public SavingsAccount()
     {
@@ -18,11 +16,12 @@ public class SavingsAccount
 
     }
 
-    public SavingsAccount(Customer c) //Work in progress.
+    public SavingsAccount(int userid, int savingsamount) //Work in progress.
     {
-    //TODO    
+        //TODO I need to create a method that checks in the CSV file, if the userID has a savings account or not if not then request back to them they don't have it. Request the User if he wants to create a savings account.
     }
     
+
     public double getSavings() //this will return savings.
     { 
         return savings;
