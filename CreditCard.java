@@ -1,3 +1,6 @@
+import java.util.Random;
+import java.time.LocalDate;
+
 public class CreditCard {
 
 
@@ -5,7 +8,7 @@ public class CreditCard {
     // Will add random import to generate CardNumber and CVV
     // Will implement local date import to automatically read expiration date
 
-    
+
     // Instance Variables
     private String cardNumber;
     private int cvv;
@@ -21,19 +24,34 @@ public class CreditCard {
     private boolean overLimitPenaltyApplied = false;
 
 
-
     // Constructor
-    public CreditCard(String cardNumber, int cvv, String expirationDate) {
-        this.cardNumber = cardNumber;
-        this.cvv = cvv;
-        this.expirationDate = expirationDate;
+    public CreditCard() {
+
+        Random rand = new Random();
+
+        // Generate 16-digit card number
+        StringBuilder number = new StringBuilder();
+        for (int i = 0; i < 16; i++) {
+            number.append(rand.nextInt(10)); // digits 0–9
+        }
+        this.cardNumber = number.toString();
+
+        // Generate 3-digit CVV (100–999)
+        this.cvv = 100 + rand.nextInt(900);
+
+        // Generate expiration date (3 years from now)
+        LocalDate futureDate = LocalDate.now().plusYears(3);
+        int month = futureDate.getMonthValue();
+        int year = futureDate.getYear() % 100;
+        this.expirationDate = String.format("%02d/%02d", month, year);
         this.balance = 0.0;
         this.isOpen = true;
         this.cardType = determineCardType(cardNumber);
     }
 
 
-    // Determines card type using if-else instead of switch
+
+    // Determines card type using if-else
     private String determineCardType(String cardNumber) {
         char firstDigit = cardNumber.charAt(0);
 
