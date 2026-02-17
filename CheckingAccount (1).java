@@ -3,7 +3,7 @@ import java.io.FileNotFoundException;
 import java.util.*;
 
 public class CheckingAccount {
-    public getBalance(int AccountNum){
+
     //variables
     private double balance; 
     private double overdraftFee = 15;
