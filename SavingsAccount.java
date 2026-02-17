@@ -1,24 +1,32 @@
+//TODO USING SAVINGS.CSV IT'S A WIP
+
 //Savings Account: is where you hold on to your money and in a while you can get interest for holding that money within a specific time period.
 import java.util.*; //TODO 
 public class SavingsAccount
 {
     //Variables
-    private double savings; //this is our savings balance which will start in a range if the customer first creates their account in about 100-300 $
-    private double overDraftFee = 35; //it'll start with 35$
-    private double minBalanceFee = 30; //minimum balance fee is 30 dollars.
-    private double monthlyFee = 12; //monthly fee is 12 dollars.
-    private double yearlyFee = 48; //48 dollars.
-    private double userid; //current userID lets say they registered or they were recent the constructor will use that and make THIS field equal to that. 
+    private double savings; //TODO this is our savings balance which will start in a range if the customer first creates their account in about 100-300 $
+    private double overDraftFee = 35; //TODO it'll start with 35$
+    private double minBalanceFee = 15; //TODO minimum balance fee is 15 dollars.
+    private double monthlyFee = 12; // TODO monthly fee is 12 dollars.
+    private double yearlyFee = 48; // TODO 48 dollars.
+    private String userid; //current userID lets say they registered or they were recent the constructor will use that and make THIS field equal to that. 
+    private boolean hassavings; //TODO the goal here is to use this in a column called "Has Savings" this will paste a true or false.
 
-    public SavingsAccount()
+    public SavingsAccount() //when creating
     {
         savings = 100.00; //make savings start at 100 to start with a default starting value.
 
     }
 
-    public SavingsAccount(int userid, int savingsamount) //Work in progress.
+    public SavingsAccount(String userid, int savingsamount) //Work in progress.
     {
         //TODO I need to create a method that checks in the CSV file, if the userID has a savings account or not if not then request back to them they don't have it. Request the User if he wants to create a savings account.
+    }
+
+    public static CheckSaving(String userid){ //TODO We'll check if an account has savings or not.
+
+
     }
     
 
