@@ -56,22 +56,7 @@ public class CheckingAccount {
             }
         }}
 
-    public void loadSavingsStatus(csvFile csv) throws IOException { //check csv file
 
-        Map<String,String> record = csv.getRecord("AccountNumber", accountNumber); //checks for the row where the account number matches user's account
-
-        if (record != null) { //checks if account actually exists 
-            String value = record.get("HasSavings");// check w people for the csv file if column in csv file is named hasSavings. this checks that column
-
-            if (value != null && value.equalsIgnoreCase("true")) {// makes sure value exists. works for any capitalization or lower case letters if value is true.
-                hasSavingsAccount = true; //makes class boolean true 
-            } else { //anything other than true makes class false 
-                hasSavingsAccount = false;
-            }
-        } else {
-            hasSavingsAccount = false;
-        }
-    }
 
 
         
@@ -86,14 +71,31 @@ public class CheckingAccount {
     //connect to savings account
     
     //check if has savings account, if not charge fee
+    public void loadSavingsStatus(csvFile csv) throws IOException { //reads csv file
+
+        Map<String,String> record = csv.getRecord("AccountNumber", accountNumber); //checks for the row where the account number matches user's account
+
+        if (record != null) { //checks if account actually exists 
+            String value = record.get("HasSavings");// gets value from HasSavings column. check w people for the csv file if column in csv file is named hasSavings. 
+
+            if (value != null && value.equalsIgnoreCase("true")) {// makes sure value exists. works for any capitalization or lower case letters if value is true.
+                hasSavingsAccount = true; //makes class boolean true 
+            } else { //anything other than true makes class false 
+                hasSavingsAccount = false;
+            }
+        } else { //if no account is found then false
+            hasSavingsAccount = false;
+        }
+    }
     private boolean hasSavingsAccount; 
-    private double balance;
-    private double noSavingsFee = 25.0;
+    private double checkingBalance;
+    private static final double NO_SAVINGS_FEE = 25.0;
     public void checkSavingsConnection() {
         if (!hasSavingsAccount) {// if it is false, user is charged 
-            balance -= noSavingsFee;
-            System.out.println("you do not have a savings account. a fee of $25.00 has been charged. ");
+            checkingBalance -= NO_SAVINGS_FEE;
+            System.out.println("no existing savings account. a charge of $25 has been sent to your checking account");
         }
+
     }
     //create checking account
     //seaparate csv file for only checkings
