@@ -1,17 +1,30 @@
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit; //Class of date)//
-import java.util.Scanner; //Class of date format)//
+import java.nio.file.Path;
+import java.nio.file.Paths; //Class of date)//
+import java.time.LocalDate; //Class of date format)//
+import java.time.temporal.ChronoUnit;
+import java.util.Random;
+import java.util.Scanner;
 
 public class Custodial {
-    private final String accountNumber;
+    Path custodialFile = Paths.get("custodialAccounts.csv");
+    private final String accountNumber = generateRandom12DigitAccountNumber();
     private int minorAge;
     private double balance;
     private final LocalDate accountCreationDate; // Set account creation date to current date in (year-month-day format)//
     Scanner scanner = new Scanner(System.in);
 
+    private String generateRandom12DigitAccountNumber() {
+        long min = 100000000000L;
+        long max = 999999999999L;
+
+        Random random = new Random();
+        // Generate a random long within the range [min, max]
+        long randomNumber = min + (long) (random.nextDouble() * (max - min + 1));
+        
+        // Format the long as a 12-digit string with leading zeros if needed
+        return String.format("%012d", randomNumber);
+    }
     public Custodial() {
-        System.out.print("Enter account number: ");
-        accountNumber = scanner.nextLine(); 
         System.out.print("Enter minor's age: ");
         minorAge = scanner.nextInt();
         accountCreationDate = LocalDate.now();
@@ -23,9 +36,9 @@ public class Custodial {
         if (balance < 100) {
             throw new IllegalArgumentException("Initial deposit must be at least $100.");
         }
+        addToCSV();
     }
-    public Custodial(String accountNumber, int age, double initialDeposit) {
-        this.accountNumber = accountNumber;
+    public Custodial(int age, double initialDeposit) {
         if (age > 18 || initialDeposit < 100) {
             throw new IllegalArgumentException("Can not create account. Ensure minor is below 18 years of age and at least $100 is deposited.");
         }
@@ -34,6 +47,7 @@ public class Custodial {
             balance = initialDeposit;
         }
         accountCreationDate = LocalDate.now();
+        addToCSV();
         }
     public void custodialDeposit(double amount) {
         if (amount <= 0) {
@@ -79,7 +93,15 @@ public class Custodial {
     }
     private void applyInterest(long years) {
         double interestRate = 0.02; // 2% annual interest rate
-        balance = balance * Math.pow(1 + interestRate, years); //Compound interest formula (A = P(1 + r/n)^(nt))//
+        balance = balance * Math.pow(1 + interestRate/4, years*4); //Compound interest formula (A = P(1 + r/n)^(nt)), assuming the account is compounded quarterly//
         }
+    private void addToCSV() {
+            try {
+                String csvLine = accountNumber + "," + minorAge + "," + balance + "," + accountCreationDate;
+                java.nio.file.Files.write(custodialFile, (csvLine + System.lineSeparator()).getBytes(), java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+                System.out.println("Account information added to CSV file.");
+            } catch (java.io.IOException e) {
+                System.out.println("An error occurred while writing to the CSV file: " + e.getMessage());
     }
-
+    }
+}
