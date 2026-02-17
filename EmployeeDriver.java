@@ -11,7 +11,7 @@ public class EmployeeDriver {
         int keyboard = input.nextInt();
         input.nextLine(); // clear newline
 
-        if (keyboard == 123456 || keyboard == 895195 || keyboard == 714821) {
+        if (keyboard == 123456 || keyboard == 123195 || keyboard == 123821) {
 
             System.out.println("Access Granted. Which employee would you like to see?");
             String arh = input.nextLine();
@@ -41,7 +41,7 @@ public class EmployeeDriver {
                     63000,
                     "456 Secondary St",
                     "Loan Officer",
-                    895195,
+                    123195,
                     true,
                     "Bobby Johnson"
                 );
