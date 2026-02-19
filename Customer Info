@@ -1,9 +1,12 @@
+import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.scanner
-
+import java.util.scanner;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 public class Customer {
 
+	csvFile file = new csvFile(Paths.get("csvfile.csv"));
     // PERSONAL INFO
     private String firstName;
     private String lastName;
