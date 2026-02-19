@@ -1,54 +1,65 @@
 import java.util.Random;
+import java.time.LocalDate;
 
 public class CreditCard {
 
-    private String cardNumber;
-    private int cvv;
+    private String creditCardNumber;
+    private String cardType;
+    private int cvv;  // 4-digit CVV for AMEX
     private String expirationDate;
     private double balance;
     private boolean isOpen;
 
-    // Constructor – auto generates all card info
+
+    // Constructor – auto generates AMEX card
     public CreditCard() {
-        this.cardNumber = generateCardNumber();
+        this.creditCardNumber = generateCardNumber();
+        this.cardType = "American Express";
         this.cvv = generateCVV();
         this.expirationDate = generateExpirationDate();
         this.balance = 0.0;
         this.isOpen = true;
     }
 
-    // Generate 16-digit card number
+    // Generate AMEX card number (15 digits, starts with 34 or 37)
     private String generateCardNumber() {
         Random rand = new Random();
-        String number = "";
-        for (int i = 0; i < 16; i++) {
+
+        String[] prefixes = {"34", "37"};
+        String prefix = prefixes[rand.nextInt(prefixes.length)];
+
+        String number = prefix;
+
+        while (number.length() < 15) {
             number += rand.nextInt(10);
         }
+
         return number;
     }
 
-    // Generate 3-digit CVV
+    // Generate 4-digit CVV (1000–9999)
     private int generateCVV() {
         Random rand = new Random();
-        return 100 + rand.nextInt(900); // ensures 100–999
+        return 1000 + rand.nextInt(9000);
     }
 
-    // Generate expiration date (MM/YY)
+    // Expiration date = 5 years from current date
     private String generateExpirationDate() {
-        Random rand = new Random();
+        LocalDate futureDate = LocalDate.now().plusYears(5);
 
-        int month = 1 + rand.nextInt(12);
-        int currentYear = 26;
-        int yearOffset = 2 + rand.nextInt(2); // 2 or 3 years
+        int month = futureDate.getMonthValue();
+        int year = futureDate.getYear() % 100;
 
-        int year = currentYear + yearOffset;
-
-        return String.format("%02d/%d", month, year);
+        return String.format("%02d/%02d", month, year);
     }
 
+    // GETTERS
+    public String getCreditCardNumber() {
+        return creditCardNumber;
+    }
 
-    public String getCardNumber() {
-        return cardNumber;
+    public String getCardType() {
+        return cardType;
     }
 
     public int getCVV() {
@@ -67,21 +78,23 @@ public class CreditCard {
         return isOpen;
     }
 
+    // Add charge (2 decimal precision)
     public void addCharge(double amount) {
         if (isOpen && amount > 0) {
-            balance += amount;
+            balance = Math.round((balance + amount) * 100.0) / 100.0;
         }
     }
 
+    // Make payment
     public void makePayment(double amount) {
         if (amount > 0 && amount <= balance) {
-            balance -= amount;
+            balance = Math.round((balance - amount) * 100.0) / 100.0;
         }
     }
 
-    // Card can only close if balance is 0
+    // Close only if balance is 0
     public boolean closeCard() {
-        if (balance == 0) {
+        if (balance == 0.0) {
             isOpen = false;
             return true;
         }
