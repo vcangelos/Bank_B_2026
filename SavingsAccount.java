@@ -11,7 +11,7 @@ public class SavingsAccount
     private double monthlyFee = 12; // TODO monthly fee is 12 dollars.
     private double yearlyFee = 48; // TODO 48 dollars.
     private String userid; //current userID lets say they registered or they were recent the constructor will use that and make THIS field equal to that. 
-    private boolean hassavings; //TODO the goal here is to use this in a column called "Has Savings" this will paste a true or false.
+    
 
     public SavingsAccount() //when creating
     {
@@ -24,9 +24,12 @@ public class SavingsAccount
         //TODO I need to create a method that checks in the CSV file, if the userID has a savings account or not if not then request back to them they don't have it. Request the User if he wants to create a savings account.
     }
 
-    public static CheckSaving(String userid){ //TODO We'll check if an account has savings or not.
+    public static boolean CheckSaving(String userid){ //TODO We'll check if an account has savings or not.
+    boolean hassavings = false; //TODO the goal here is to use this in a column called "Has Savings" this will paste a true or false.
 
+    //Run inside the CSV and check if the value is 0 and if hasSavings is false both can't be wrong.
 
+    return hassavings; //this is here TODO.
     }
     
 
