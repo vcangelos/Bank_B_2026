@@ -1,4 +1,3 @@
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,9 +22,25 @@ public class BankLocation {
 
     //Overloaded constructor that creates one location
     public BankLocation(String branchName, String zipCode, String routingNumber) {
-        this.branchName = branchName;
-        this.zipCode = zipCode;
-        this.routingNumber = routingNumber;
+        if (branchName != null && !branchName.trim().isEmpty()) {
+            this.branchName = branchName;
+        } else { 
+            this.branchName = "Unknown Name";
+            System.out.println("Invalid branch name");
+        }
+        if (zipCode.matches("\\d{5}")) {
+            this.zipCode = zipCode;
+        } else {
+            this.zipCode = "00000";
+            System.out.println("Invalid zip code");
+        }
+        if (routingNumber.matches("\\d{9}")) {
+            this.routingNumber = routingNumber;
+        } else {
+            this.routingNumber = "000000000";
+            System.out.println("Invalid routing number");
+        }
+
         //Stores the location in the map
         locations.put(zipCode, this);
     }
@@ -52,34 +67,51 @@ public class BankLocation {
         return taxRate;
     }
     public static void setTaxRate(double rate) {
-        taxRate = rate; 
+        if (rate >= 0 && rate <= 1) {
+            taxRate = rate;
+        } else {
+            System.out.println("Invalid tax rate");
+        }
     }
     
     public static double getInterestRate() {
         return interestRate; 
     }
-    public static void setInterestRate(double rate) { 
-        interestRate = rate;
+    public static void setInterestRate(double rate) {
+        if (rate >= 0 && rate <= 1) {
+            interestRate = rate;
+        } else {
+            System.out.println("Invalid interest rate");
+        }
     }
     
     public static String getPhoneNumber() {
         return phoneNumber; 
     }
     public static void setPhoneNumber(String phone) {
-        phoneNumber = phone; 
+        if (phone.matches("\\d{10}")) {
+            phoneNumber = phone;
+        } else {
+            System.out.println("Invalid phone number");
+        }
     }
     
     public static String getEmail() {
         return email; 
     }
     public static void setEmail(String em) {
-        email = em; 
+        if (em.contains("@") && em.contains(".")) {
+            email = em;
+        } else {
+            System.out.println("Invalid email");
+        }
     }
     
     //Allows access to the map and retrieval of specific locations
     public static BankLocation getLocationByZip(String zip) {
         return locations.get(zip);
     }
+}   
     
     
     
@@ -88,18 +120,4 @@ public class BankLocation {
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-}
     
