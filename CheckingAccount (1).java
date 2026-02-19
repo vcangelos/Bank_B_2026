@@ -1,72 +1,128 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.*;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Random;
 
 public class CheckingAccount {
 
     //variables
+    private final String userID;
+    private final AccountRepository repo;
     private double balance; 
-    private double overdraftFee = 15;
-    private double minBalanceFee = 100;
+    private double overdraftFee = 35;
+    private double minBalanceFee = 15;
+    private double minBalance = 100;
     public transactionHistory; 
+    //static File accounts = new File("xxx.csv");
+    //static File checkingAccounts = new File ("checking_accounts.csv");
+    //static File savingsAccounts = new File("saving_accounts.csv");
+    //need csv for everything else? loans, mortgages, card, etc.? 
     
+    
+    public CheckingAccount(String id, AccountRepository repo) throws IOException {
+        this.id = id;
+        this.repo = repo;
+
+        Map<String,String> data = repo.findById(id);
+        this.balance = Integer.parseInt(data.get("checkingBalance"));
+    }
+    
+    public double getBalance(){
+        return balance;
+    }    
+    public String getID(){
+        return userID;
+    }
+    public boolean getOverdraftProtection(){
+        return hasOverdraftProtection;
+    }
+
+    
+    //view accounts
+    static void viewAccounts(){
+       
+
     //deposit
-    public void deposit(int amt){
-        char acct = in.next().trim().toUpperCase().charAt(0); 
-        System.out.print("Amount: "); 
+    public void deposit(){
+       
+        System.out.print("Amount:$ "); 
         double amt = in.nextDouble(); 
         if (amt <= 0) { // if amount entered is valid (<= 0)
             System.out.println("Amount must be > 0."); 
-            continue;
-            } 
-            else if (amt > 0) { //if amount entered is valid (>0)
-                 balance += amt;
-            }
-            else {  //anything else entered that isn't valid (symbols,letters)
-            System.out.println("Invalid account."); 
-            continue; }
-    }
+        } 
+        else if (amt > 0) { //if amount entered is valid (>0)
+             balance += amt;
+             System.out.println("Deposit successful.");
+             System.out.println("New Balance: $" + balance); 
+        }
+        else {  //anything else entered that isn't valid (symbols,letters)
+        System.out.println("Invalid account."); 
+        } 
+    } 
     
     //withdrawals
-        char acct = in.next().trim().toUpperCase().charAt(0); //C is variable used for checking account 
-        System.out.print("Amount: "); 
-        double amt = int.nextDouble(); 
-        if (amt<= 0){
-            System.out.println("Amount must be > 0"); 
-        }
-        else if (acct == 'C' ) {
-        public void withdraw(int amt){
-            if (amt > balance){
-                if (hasOverdraftProtection == false){
-                    balance -= overdraftFee;
-                }
-                else if (hasOverdraftProtection == true){
-                    
-                    //finish code
-                }
-                else{
-                    left = amt - balance;
-                    savings -= left;
-                    balance = 0;
-                }
+// make the overdraft fee $35 
+   public void withdraw() {
+    System.out.print("Amount: "); 
+    double amt = int.nextDouble(); 
+    if (amt <= 0){
+        System.out.println("Amount must be > 0"); 
+        return;
+    }
+    if (amt > balance ) {
+        if (!hasOverdraftProtection) {
+            balance -= 35;
+            System.out.println("Overdraft fee applied"); 
+            }
+            else { 
+                double left = amt - balance;
+                savings -= left; 
+                balance = 0; 
+                System.out.print("Used savings for overdraft protection"); 
             }
             else{
-               balance -= amt;  
-                System.out.print("Invalid Account."); 
+             balace -= amt;
             }
-        }}
-
-
-
-
-        
-    //minimum balance
+            System.out.print("New balance: $ " + balance); 
+        }
+    }
+    
+    //minimum balance, possibly give one day to transfer funds from another account
     public void checkMinimumBalance();
-        if (balance < minimumBalance){
+        if (balance < minBalance){
             savings -= minBalanceFee;
         }
-    //transaction history: use 2d array (withdrawls, deposits, purchases, fees -> for each: date, amount, new balance)
-    public transactionHistory();
+    //transaction history: use 2d array (withdrawls, deposits, purchases, fees -> for each: date, amount, new balance) 
+    // don't need to connect with savings account
+    //rows = single transaction, columns = transaction name, amount, date, balance after 
+    public void transactionHistory() {
+   // adds a row + columns required when a transaction is made 
+   for (int row = 0; row < transactionHistory.length; row++); { 
+       for (int column = 0; columns < transactionHistory.[row]; column++); { 
+       }
+   }
+   //to find the transactions that satify a condition (ex: deposits only) 
+       int count = 0; 
+for (int r = 0; r < transactionHistory.length; r++) { 
+    for (int c = 0; c < transactionHistory[r].length; c++) { 
+        if (grades[r][c] >= ) count++; 
+    } 
+} 
+System.out.println("# of " + __________ + " = " + count); 
+
+   //prints out info for the transaction made 
+    System.out.println("Date: " + | "Type: " + | "Amount:$ " + | "Balance After: " + );
+    
+    
+    
     
     //connect to savings account
     
@@ -104,4 +160,7 @@ public class CheckingAccount {
     // declare dimensions to create array (x rows, x columns) but must be dynamic array to allow it to expand
     // don't hardcode length of array, use .length in loops? 
     //search algorithms
-    //no interface
+    //YES interface
+    //generate unique ids
+    //certain length, each value is randomly assigned, no duplicants, has to be random, make sure checking account ids are not same as savings account ids, every id starts w/ 4
+    //ids start with 4
