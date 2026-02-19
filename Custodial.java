@@ -1,12 +1,11 @@
-import java.nio.file.Path;
-import java.nio.file.Paths; //Class of date)//
-import java.time.LocalDate; //Class of date format)//
-import java.time.temporal.ChronoUnit;
+import java.io.FileWriter;
+import java.io.IOException; //In case of file errors//
+import java.time.LocalDate; //Class to store date//
+import java.time.temporal.ChronoUnit; //Class to use operations with dates//
 import java.util.Random;
 import java.util.Scanner;
 
 public class Custodial {
-    Path custodialFile = Paths.get("custodialAccounts.csv");
     private final String accountNumber = generateRandom12DigitAccountNumber();
     private int minorAge;
     private double balance;
@@ -97,11 +96,14 @@ public class Custodial {
         }
     private void addToCSV() {
             try {
-                String csvLine = accountNumber + "," + minorAge + "," + balance + "," + accountCreationDate;
-                java.nio.file.Files.write(custodialFile, (csvLine + System.lineSeparator()).getBytes(), java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-                System.out.println("Account information added to CSV file.");
-            } catch (java.io.IOException e) {
-                System.out.println("An error occurred while writing to the CSV file: " + e.getMessage());
+                FileWriter appender = new FileWriter("custodialAccounts.csv", true);
+                String dataString = accountNumber + "," + accountCreationDate + "," + minorAge + "," + balance + "\n";
+                appender.write(dataString);
+                appender.close();
+                }
+            catch(IOException e) {
+                System.out.println("Error Occured adding to file.");
+            }
+
     }
     }
-}
