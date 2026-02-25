@@ -16,11 +16,19 @@ public class SavingsAccount
     private String userid; //current userID lets say they registered or they were recent the constructor will use that and make THIS field equal to that.
     /*Static Final variables */
     private static final Path csvPath = Path.of("Savings.csv"); //fine the path for the CSV file
-    private static final csvFile file = new csvFile(csvPath); //csvFile equals to the path of the CSV file.
+    private static csvFile file; //csvFile equals to the path of the CSV file.
     private static final long  MAX = 199999999999L; //This is the maximum for the savings number generator. //1000000000000 is Savings Account UNIQUE ID this is only for savings.
     private static final long MIN = 100000000000L; //minimum for the random number generator
     //TODO long number = MIN + (long)(rand.nextDouble() * (MAX - MIN + 1));
-
+    //try catch exceptions if the csvfile fails to load
+    static{
+        try{
+            file = new csvFile(csvPath);
+        }catch(IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
     
 
     public SavingsAccount() //when creating
@@ -40,22 +48,39 @@ public class SavingsAccount
 
     
     public static boolean hasSaving(String userid){ //TODO We'll check if an account has savings or not.
-        boolean hassavings = false; //TODO the goal here is to use this in a column called "Has Savings" this will paste a true or false.
-
+    try{
         Map<String,String> record = file.getRecord("userid", userid);
         if(record == null){
             return false;
         }
-        String strhassavings = record.get("HasSavings");
-        hassavings = strhassavings.equalsIgnoreCase("true"); //hassavings contain the value of the map
+        String strsavingsID = record.get("SavingsID");
+        if(strsavingsID == null || strsavingsID.isEmpty()) 
+        {   
+            return false;
+        }
         //Run inside the CSV and check if the value is 0 and if hasSavings is false both can't be wrong.
-
-        return record.get("SavingsID") >= MIN && record.get("SavingsID") <= MAX; //this is here TODO.
+        long savingsID = Long.parseLong(strSavingsID);
+        return savingsID >= MIN && savingsID <= MAX; //this is here TODO.
+     }catch(IOException e)
+    {
+        e.printStackTrace();
+        return false;
     }
-    public SavingsAccount createSavingsAccount(){
-        //TODO
+    }
+    
+    public SavingsAccount createSavingsAccount(String userid) throws IOException{
+        if(hasSaving(userid)){
+            throw new IllegalArgumentException("The User Already has a Savings Account.");
+        }
 
         return SavingsAccount;
+    }
+
+    public long RandomIDGenerator()
+    {
+        long ID = ;
+
+
     }
     
 
