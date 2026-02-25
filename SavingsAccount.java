@@ -4,7 +4,7 @@
 import java.util.*; //TODO 
 import java.nio.file.Path; //This function is used to find the file you want for example I'm using this to find my Savings.csv
 
-import java.util.Random //this is used for the random generator.
+import java.util.Random; //this is used for the random generator.
 public class SavingsAccount
 {
     /***Variables***/
@@ -14,10 +14,11 @@ public class SavingsAccount
     private double monthlyFee = 12; // TODO monthly fee is 12 dollars.
     private double yearlyFee = 48; // TODO 48 dollars.
     private String userid; //current userID lets say they registered or they were recent the constructor will use that and make THIS field equal to that.
-    Path csvPath = Path.of("Savings.csv"); //fine the path for the CSV file
-    csvFile file = new csvFile(csvPath); //csvFile equals to the path of the CSV file.
-    private long MAX = 199999999999L; //This is the maximum for the savings number generator. //1000000000000 is Savings Account UNIQUE ID this is only for savings.
-    private long MIN = 100000000000L; //minimum for the random number generator
+    /*Static Final variables */
+    private static final Path csvPath = Path.of("Savings.csv"); //fine the path for the CSV file
+    private static final csvFile file = new csvFile(csvPath); //csvFile equals to the path of the CSV file.
+    private static final long  MAX = 199999999999L; //This is the maximum for the savings number generator. //1000000000000 is Savings Account UNIQUE ID this is only for savings.
+    private static final long MIN = 100000000000L; //minimum for the random number generator
     //TODO long number = MIN + (long)(rand.nextDouble() * (MAX - MIN + 1));
 
     
@@ -45,15 +46,16 @@ public class SavingsAccount
         if(record == null){
             return false;
         }
-
-        hassavings = record.get("HasSavings") //hassavings contain the value of the map
+        String strhassavings = record.get("HasSavings");
+        hassavings = strhassavings.equalsIgnoreCase("true"); //hassavings contain the value of the map
         //Run inside the CSV and check if the value is 0 and if hasSavings is false both can't be wrong.
 
-        return hassavings != null && hassaving.equalIgnoreCase("true") && rrecord.get("SavingsID") => MIN && record.get("SavingsID") <= MAX; //this is here TODO.
+        return record.get("SavingsID") >= MIN && record.get("SavingsID") <= MAX; //this is here TODO.
     }
     public SavingsAccount createSavingsAccount(){
         //TODO
 
+        return SavingsAccount;
     }
     
 
