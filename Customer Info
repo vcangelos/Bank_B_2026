@@ -15,7 +15,7 @@ public class Customer {
 
     // ACCOUNT INFO
     private double SavingsAccount;
-    private double checkingBalance;
+    private double CheckingAccount;
     private double creditCardBalance;
     private double creditCardLimit;
     private int creditScore;
