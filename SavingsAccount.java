@@ -22,7 +22,7 @@ public class SavingsAccount
     /*Static Final variables */
     private static final Path csvPath = Path.of("Savings.csv"); //fine the path for the CSV file
     private static csvFile file; //csvFile equals to the path of the CSV file.
-    private static final long  MAX = 199_999_999_999L; //This is the maximum for the savings number generator. //1000000000000 is Savings Account UNIQUE ID this is only for savings.
+    private static final long MAX = 199_999_999_999L; //This is the maximum for the savings number generator. //1000000000000 is Savings Account UNIQUE ID this is only for savings.
     private static final long MIN = 100_000_000_000L; //minimum for the random number generator
     private static final double minimumbalance = 100;
     private static final double maximumbalance = 300;
@@ -124,6 +124,7 @@ public class SavingsAccount
     return false; //return false if there is no savings ID equal to another savings ID
 }
 
+//*******SETTERS AND GETTERS*******/
     public double getSavings() //this will return savings.
     { 
         return savingsbalance;
@@ -144,7 +145,7 @@ public class SavingsAccount
         }
         return savingsbalance;
     }
-
+//************Withdraw system**************/
     public double withdrawSavings(double amt, String choice) //withdraw system that records the amount.
     {
         switch(choice) //This is going to change the intent for this is if the user picks "Checking" then subtract savings from the amt that was placed and the checking account managers add that amt value otherwise if "Savings" we'll add the value from amt and the checking account people would just subtract on their part.
@@ -169,4 +170,16 @@ public class SavingsAccount
             }
             return savingsbalance;                
         }
+
+    //FEES
+    public double minBalanceFee(double savingsbalance){
+        if(savingsbalance < 100)
+        { //Gotta implement a 24 hour system
+            savingsbalance -= minBalanceFee;
+        }
+        
+
+    }
+
+
     }
