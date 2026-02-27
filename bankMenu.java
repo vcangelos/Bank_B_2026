@@ -2,20 +2,37 @@ import java.util.Scanner;
 
 
 public class bankMenu {
+    static Scanner keyboard = new Scanner(System.in);
 
+    public static void main(String[] args) {
+        while(true) {
 
-    Scanner keyboard = new Scanner(System.in);
-    System.out.println("Login to Bank");
+            System.out.println("Options: \n 1)Login\n2)Register");
+            {
+                int option = keyboard.nextInt();
+                switch (option) {
+                    case 1:
+                        login();
+                        break;
+                    case 2:
+                        register();
+                        break;
+                    default:
+                        System.out.println("Invalid option");
+                }
+            }
+        }
+    }
 
-    System.out.println("Username:");
-    String userName = keyboard.nextLine();
-    System.out.println("Password:");
-    String password = keyboard.nextLine();
+    private static void register() {
 
-    //if username = from csv get by username
-    //then getting that information, get the password and compare the strings.
-    if()
-    {
+    }
+
+    private static void login() {
+        System.out.println("Enter Username:");
+        String username = keyboard.next();
+        System.out.println("Enter Password:");
+        String username = keyboard.next();
     }
 
 }
