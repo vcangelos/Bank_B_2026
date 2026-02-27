@@ -1,2 +1,2 @@
-firstName,lastName,SSN,DOB,email,phoneNumber,minDeposit
-Ved, Intern, 123456789, 01232007,vedpatel@gmail.com, 7775559988, 100
+firstName,lastName,SSN,DOB,email,phoneNumber,minDeposit,id
+Ved, Intern, 123456789, 01232007,vedpatel@gmail.com, 7775559988, 100. 1111
