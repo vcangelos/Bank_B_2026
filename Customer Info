@@ -14,7 +14,7 @@ public class Customer {
     private String phoneNumber;
 
     // ACCOUNT INFO
-    private double savingsBalance;
+    private double SavingsAccount;
     private double checkingBalance;
     private double creditCardBalance;
     private double creditCardLimit;
