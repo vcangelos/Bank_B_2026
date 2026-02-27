@@ -2,7 +2,7 @@
 
 //Savings Account: is where you hold on to your money and in a while you can get interest for holding that money within a specific time period.
 //this is used for the random generator.
-import java.util.*; //TODO 
+import java.util.Random; //Random is used for the random ID generator  
 import java.io.BufferedWriter; //This helps us write data to the CSV file.
 import java.io.IOException; //catch errors if anything silly happens.
 import java.nio.file.Files; //to make it easier to access the files read and write functions. Our HasSavings is a static so we need static methods to make the code work. Files work hand to hand with path objects instead of using Strings we could use that which makes it platform independent.
@@ -10,6 +10,11 @@ import java.util.ArrayList; //Array list is needed when we don't know the size o
 import java.nio.file.Path; //This function is used to find the file you want for example I'm using this to find my Savings.csv
 import java.nio.file.StandardOpenOption; //we don't want to overwrite when we create a savings ID account we want to append.
 import java.io.BufferedReader; //is used to read line by line
+
+
+//TIME import TODO
+
+
 public class SavingsAccount
 {
     /***Variables***/
@@ -18,10 +23,10 @@ public class SavingsAccount
     private double minBalanceFee = 15; //TODO minimum balance fee is 15 dollars.
     private double monthlyFee = 12; // TODO monthly fee is 12 dollars.
     private double yearlyFee = 48; // TODO 48 dollars.
+    private static csvFile file; //csvFile equals to the path of the CSV file.
     private String userid; //current userID lets say they registered or they were recent the constructor will use that and make THIS field equal to that.
     /*Static Final variables */
     private static final Path csvPath = Path.of("Savings.csv"); //fine the path for the CSV file
-    private static csvFile file; //csvFile equals to the path of the CSV file.
     private static final long MAX = 199_999_999_999L; //This is the maximum for the savings number generator. //1000000000000 is Savings Account UNIQUE ID this is only for savings.
     private static final long MIN = 100_000_000_000L; //minimum for the random number generator
     private static final double minimumbalance = 100;
@@ -175,7 +180,7 @@ public class SavingsAccount
     public double minBalanceFee(double savingsbalance){
         if(savingsbalance < 100)
         { //Gotta implement a 24 hour system
-            savingsbalance -= minBalanceFee;
+            
         }
         
 
