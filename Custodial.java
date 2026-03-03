@@ -1,29 +1,51 @@
-import java.io.FileWriter;
-import java.io.IOException; //In case of file errors//
-import java.time.LocalDate; //Class to store date//
-import java.time.temporal.ChronoUnit; //Class to use operations with dates//
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit; //Class to store date//
+import java.util.ArrayList; //Class to use operations with dates//
 import java.util.Random;
 import java.util.Scanner;
 
 public class Custodial {
-    private final String accountNumber = generateRandom12DigitAccountNumber();
+    private final String accountNumber;
     private int minorAge;
     private double balance;
     private final LocalDate accountCreationDate; // Set account creation date to current date in (year-month-day format)//
+    private static ArrayList<String> accountNumbers = new ArrayList<>(); //Array to store account numbers to ensure no duplicates//
     Scanner scanner = new Scanner(System.in);
 
+    public boolean checkDuplicateAccountNumber(String number) {
+        for (String accountNum : accountNumbers) {
+            if (accountNum != null && accountNum.equals(number)) {
+                return true;
+            }
+        }
+        return false;
+    }
     private String generateRandom12DigitAccountNumber() {
-        long min = 100000000000L;
-        long max = 999999999999L;
-
-        Random random = new Random();
+        long min = 200000000000L;
+        long max = 299999999999L;
+        String formattedNumber = "";
+        while(true){
+            Random random = new Random();
         // Generate a random long within the range [min, max]
-        long randomNumber = min + (long) (random.nextDouble() * (max - min + 1));
-        
+            long randomNumber = min + (long) (random.nextDouble() * (max - min + 1));
+            formattedNumber = String.format("%012d", randomNumber);
+            if (!checkDuplicateAccountNumber(formattedNumber)) {
+                accountNumbers.add(formattedNumber); // Store the generated account number in the array
+                break;
+            }
+        }
         // Format the long as a 12-digit string with leading zeros if needed
-        return String.format("%012d", randomNumber);
+        return formattedNumber;
+    }
+    public Custodial(String accountNumber, LocalDate accountCreationDate, int minorAge, double balance) { //Constructor used for reading from CSV file, takes in all parameters as arguments//
+        this.accountNumber = accountNumber;
+        accountNumbers.add(accountNumber);
+        this.accountCreationDate = accountCreationDate;
+        this.minorAge = minorAge;
+        this.balance = balance;
     }
     public Custodial() {
+        accountNumber = generateRandom12DigitAccountNumber();
         System.out.print("Enter minor's age: ");
         minorAge = scanner.nextInt();
         accountCreationDate = LocalDate.now();
@@ -35,9 +57,11 @@ public class Custodial {
         if (balance < 100) {
             throw new IllegalArgumentException("Initial deposit must be at least $100.");
         }
-        addToCSV();
+        addToCSVData();
+        System.out.println("Account created successfully. Account Number: " + accountNumber);
     }
     public Custodial(int age, double initialDeposit) {
+        accountNumber = generateRandom12DigitAccountNumber();
         if (age > 18 || initialDeposit < 100) {
             throw new IllegalArgumentException("Can not create account. Ensure minor is below 18 years of age and at least $100 is deposited.");
         }
@@ -46,7 +70,8 @@ public class Custodial {
             balance = initialDeposit;
         }
         accountCreationDate = LocalDate.now();
-        addToCSV();
+        addToCSVData();
+        System.out.println("Account created successfully. Account Number: " + accountNumber);
         }
     public void custodialDeposit(double amount) {
         if (amount <= 0) {
@@ -64,6 +89,7 @@ public class Custodial {
         }
         balance -= amount;
         System.out.println("Withdrawal successful. Current balance: $" + balance);
+
     }
     public void displayAccountInfo() {
         System.out.println("Account Number: " + accountNumber);
@@ -90,20 +116,15 @@ public class Custodial {
     }
         applyInterest(yearsElapsed);
     }
+    public LocalDate getAccountCreationDate() {
+        return accountCreationDate;
+    }
     private void applyInterest(long years) {
         double interestRate = 0.02; // 2% annual interest rate
         balance = balance * Math.pow(1 + interestRate/4, years*4); //Compound interest formula (A = P(1 + r/n)^(nt)), assuming the account is compounded quarterly//
         }
-    private void addToCSV() {
-            try {
-                FileWriter appender = new FileWriter("custodialAccounts.csv", true);
-                String dataString = accountNumber + "," + accountCreationDate + "," + minorAge + "," + balance + "\n";
-                appender.write(dataString);
-                appender.close();
-                }
-            catch(IOException e) {
-                System.out.println("Error Occured adding to file.");
-            }
-
+    private void addToCSVData() {
+        CustodialWriter writer = new CustodialWriter();
+        writer.addToCSV(this);
     }
-    }
+}
