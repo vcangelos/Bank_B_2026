@@ -45,32 +45,53 @@ public class DebitCard {
         return isActive;
     }
     
+    // Check balance - STUB until integration with checking account team
     public double checkBalance() {
         if(!isActive) {
             System.out.println("Error: Card is not active");
             return 0.0;
         }
+        
+        // TODO: Integrate with checking account team
+        // Will call something like: accountService.getBalance(linkedAccountId)
         System.out.println("Checking balance for account: " + linkedAccountId);
-        return 1000.00; // temporary until linked with accounts team
+        return 1000.00; // Stub value - replace with actual integration
     }
     
+    // Withdraw money - STUB until integration with checking account team
     public boolean withdraw(double amount) {
         if(!isActive) {
             System.out.println("Error: Card is not active");
             return false;
         }
+        
+        if(amount <= 0) {
+            System.out.println("Error: Amount must be greater than 0");
+            return false;
+        }
+        
+        // TODO: Integrate with checking account team
+        // Will call something like: accountService.withdraw(linkedAccountId, amount)
         System.out.println("Withdrawing $" + amount + " from account: " + linkedAccountId);
-        return true;
-        // replace this with code that calls the checking account team's withdraw method to actually remove money.
+        return true; // Stub - replace with actual integration
     }
     
+    // Deposit money - STUB until integration with checking account team
     public boolean deposit(double amount) {
         if(!isActive) {
             System.out.println("Error: Card is not active");
             return false;
         }
+        
+        if(amount <= 0) {
+            System.out.println("Error: Amount must be greater than 0");
+            return false;
+        }
+        
+        // TODO: Integrate with checking account team
+        // Will call something like: accountService.deposit(linkedAccountId, amount)
         System.out.println("Depositing $" + amount + " to account: " + linkedAccountId);
-        return true;
+        return true; // Stub - replace with actual integration
     }
     
     public void closeCard() {
@@ -78,8 +99,8 @@ public class DebitCard {
         System.out.println("Card " + debitCardNumber + " has been closed.");
     }
     
+    // Main method for CSV integration
     public static void main(String[] args) {
-        // This list will hold all the debit cards once we have the full data
         List<DebitCard> bankCards = new ArrayList<>();
         
         String file = "debitCard.csv"; 
@@ -89,31 +110,32 @@ public class DebitCard {
 
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             
-            // Read and skip the first line (the headers)
+            // Skip the header line
             br.readLine(); 
 
-            // Read the file line by line until there's nothing left
+            // Read the file line by line
             while ((line = br.readLine()) != null) {
                 
                 // Split the row by commas
                 String[] data = line.split(",");
                 
-                // Make sure we have enough data columns to avoid errors
+                // Make sure we have enough data columns
                 if (data.length >= 4) {
                     String userId = data[0].trim();
                     String firstName = data[1].trim();
                     String lastName = data[2].trim();
+                    String debitBalance = data[3].trim();
                     
                     System.out.println("Found user: " + firstName + " " + lastName + " (Account: " + userId + ")");
                     
-                    // TODO: We need a Card Number and PIN to actually build the DebitCard object.
-                    // Once the team decides if we are adding these to the CSV or generating them
-                    // dynamically in the code, uncomment the lines below and plug the real variables in.
+                    // Generate card number and PIN for each user
+                    String cardNumber = "4532" + userId.replace(" ", "");
+                    String pin = "1234"; // Default PIN
                     
-                    // String realCardNumber = ???
-                    // String realPin = ???
-                    // DebitCard newCard = new DebitCard(realCardNumber, realPin, userId);
-                    // bankCards.add(newCard);
+                    DebitCard newCard = new DebitCard(cardNumber, pin, userId);
+                    bankCards.add(newCard);
+                    
+                    System.out.println("  -> Created card: " + cardNumber + " with PIN: " + pin);
                 }
             }
             
@@ -122,6 +144,7 @@ public class DebitCard {
             e.printStackTrace();
         }
         
-        System.out.println("\nFinished scanning the file. Waiting on Card/PIN logic to actually build the objects.");
+        System.out.println("\nFinished scanning the file. Created " + bankCards.size() + " debit cards.");
     }
 }
+// OTHER THINGS TO DO!!!!! have to implement fees and such like overdraft fees, atm fees, foreign transaction fees, monthly maintence fees and card replacement fees 
