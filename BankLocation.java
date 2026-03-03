@@ -42,7 +42,7 @@ public class BankLocation {
         }
 
         //Stores the location in the map
-        locations.put(zipCode, this);
+        locations.put(this.zipCode, this);
     }
     
     //Instance variable getters
@@ -89,7 +89,7 @@ public class BankLocation {
         return phoneNumber; 
     }
     public static void setPhoneNumber(String phone) {
-        if (phone.matches("\\d{10}")) {
+        if (phone != null && phone.matches("\\d{10}")) {
             phoneNumber = phone;
         } else {
             System.out.println("Invalid phone number");
@@ -100,7 +100,7 @@ public class BankLocation {
         return email; 
     }
     public static void setEmail(String em) {
-        if (em.contains("@") && em.contains(".")) {
+        if (em != null && em.contains("@") && em.contains(".")) {
             email = em;
         } else {
             System.out.println("Invalid email");
