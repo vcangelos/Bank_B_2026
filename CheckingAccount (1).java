@@ -272,67 +272,8 @@ public class BankingCSV {
         // --- Set up users and accounts ---
         List<User> users = new ArrayList<>();
 
-        User alice = new User("1001", "Alice Johnson");
-        alice.addAccount(new Account("415631219101", 4250.75));
-        alice.addAccount(new Account("498891668177", 1800.00));
-        alice.addAccount(new Account("431246013015",  620.50));
 
-        User bob = new User("1002", "Bob Martinez");
-        bob.addAccount(new Account("418138552030", 3100.00));
-        bob.addAccount(new Account("416048021673", 5500.00));
-
-        User carol = new User("1003", "Carol Smith");
-        carol.addAccount(new Account("476846326096",  980.25));
-        carol.addAccount(new Account("477682810754", 2200.00));
-        carol.addAccount(new Account("406107107737",  750.00));
-        carol.addAccount(new Account("408717912686", 8400.00));
-
-        User david = new User("1004", "David Lee");
-        david.addAccount(new Account("431003814027", 1500.00));
-
-        users.add(alice);
-        users.add(bob);
-        users.add(carol);
-        users.add(david);
-
-        // Write to CSV and read back
-        String checkingPath = "banking_accounts.csv";
-        String savingsPath  = "banking_savings.csv";
-        writeCSV(checkingPath, users);
-        List<User> loadedUsers = readCSV(checkingPath);
-
-        // --- Set up savings accounts ---
-        // Assign one savings account per user and write the savings CSV
-        User aliceSav = findUser(loadedUsers, "1001");
-        User bobSav   = findUser(loadedUsers, "1002");
-        User carolSav = findUser(loadedUsers, "1003");
-        User davidSav = findUser(loadedUsers, "1004");
-
-        aliceSav.savingsAccount = new SavingsAccount("SAV001", "1001", 3200.00);
-        bobSav.savingsAccount   = new SavingsAccount("SAV002", "1002", 8750.50);
-        carolSav.savingsAccount = new SavingsAccount("SAV003", "1003",  500.00);
-        davidSav.savingsAccount = new SavingsAccount("SAV004", "1004", 1100.00);
-
-        writeSavingsCSV(savingsPath, loadedUsers);
-        // Read savings back and link to users
-        readSavingsCSV(savingsPath, loadedUsers);
-
-        // Demo: add a new user with auto-generated IDs
-        System.out.println("\n--- Adding New User: Eve Turner ---");
-        User eve = new User("1005", "Eve Turner");
-        eve.addAccount(new Account(generateID(loadedUsers), 2000.00));
-        loadedUsers.add(eve);
-        eve.addAccount(new Account(generateID(loadedUsers), 500.00));
-        findUser(loadedUsers, "1005").printAccounts();
-
-        // --- For demo purposes, use Alice as the logged-in user ---
-        User user = findUser(loadedUsers, "1001");
-        // Use Alice's first account as the selected account
-        String selectedAccount = user.accounts.get(0).accountID;
-
-        // Alice has overdraft protection linked to her savings account (loaded from savings CSV)
-        user.hasOverdraftProtection = true;
-
+    
         // --- Menu ---
         System.out.println("\nWelcome " + user.name + "!");
         System.out.println("Menu Options");
