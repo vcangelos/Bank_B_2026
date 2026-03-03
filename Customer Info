@@ -34,6 +34,7 @@ public class Customer {
     public Customer(String firstName, String lastName, String ssn, String dateOfBirth,
                     String email, String phoneNumber) {
 
+        this.customerID = customerID;
         this.firstName = firstName;
         this.lastName = lastName;
         this.ssn = ssn;
