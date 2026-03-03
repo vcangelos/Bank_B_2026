@@ -10,6 +10,7 @@ import java.util.ArrayList; //Array list is needed when we don't know the size o
 import java.nio.file.Path; //This function is used to find the file you want for example I'm using this to find my Savings.csv
 import java.nio.file.StandardOpenOption; //we don't want to overwrite when we create a savings ID account we want to append.
 import java.io.BufferedReader; //is used to read line by line
+import java.util.Map; //find something specific like "userid": 12992
 
 
 //TIME import TODO
@@ -75,7 +76,7 @@ public class SavingsAccount
         }
     }
     
-    public SavingsAccount createSavingsAccount(String userid, double savingsamount) throws IOException{
+    public SavingsAccount createSavingsAccount(String userid, double savingsamount) throws IOException{ //Create Savings Account:Creates an account if it doesn't exist; the user gets 2 options 
         if(hasSaving(userid)){
             throw new IllegalArgumentException("The User Already has a Savings Account.");
         }
@@ -177,14 +178,26 @@ public class SavingsAccount
         }
 
     //FEES
-    public double minBalanceFee(double savingsbalance){
+    public double minBalanceFee(double savingsbalance, String userid)throws IOException{  //If the user is below 100 then create or check if 24 hours passed.
         if(savingsbalance < 100)
         { //Gotta implement a 24 hour system
-            
+            //TODO implement a time system that checks the time during runtime and compare it with the CSV if 24 hours passed then pass that fee to Checking
+            //TODO write something if there is nothing
+            Map<String,String> saving_fee_file = file.getRecord("userid", userid);
+            if(saving_fee_file == null)
+            {
+                //GOAL HERE IS TO CREATE AN TIMESTAMP IF THE USER IS LESS THAN 100 MAKE SURE TO RECORD TIME -Younes Ziani
+
+            }
         }
         
-
+        return 0.00;
     }
 
+    public double overDraftFee_(){
+        //TODO.
+        return 0.00;
+    }
+    
 
     }
