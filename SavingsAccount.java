@@ -11,7 +11,10 @@ import java.nio.file.Path; //This function is used to find the file you want for
 import java.nio.file.StandardOpenOption; //we don't want to overwrite when we create a savings ID account we want to append.
 import java.io.BufferedReader; //is used to read line by line
 import java.util.Map; //find something specific like "userid": 12992
-
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.LocalTime;
+import java.time.Instant;
 
 //TIME import TODO
 
@@ -25,19 +28,27 @@ public class SavingsAccount
     private double monthlyFee = 12; // TODO monthly fee is 12 dollars.
     private double yearlyFee = 48; // TODO 48 dollars.
     private static csvFile file; //csvFile equals to the path of the CSV file.
+    private static csvFile FeeCheck; //savingsFee will equal to CSVpathFee
     private String userid; //current userID lets say they registered or they were recent the constructor will use that and make THIS field equal to that.
     /*Static Final variables */
     private static final Path csvPath = Path.of("Savings.csv"); //fine the path for the CSV file
+     private static final Path csvPathFee = Path.of("SavingsFeeCheck"); //measuring 24 hour format.
     private static final long MAX = 199_999_999_999L; //This is the maximum for the savings number generator. //1000000000000 is Savings Account UNIQUE ID this is only for savings.
     private static final long MIN = 100_000_000_000L; //minimum for the random number generator
     private static final double minimumbalance = 100;
     private static final double maximumbalance = 300;
-
+    private static final ZoneId EASTERN_ZONE = ZoneId.of("America/New_York");
+    private static final LocalTime CUTOFF = LocalTime.of(17, 0); // 5 PM
+    Instant now = Instant.now();
+.
+    ZonedDateTime nowEastern = ZonedDateTime.now(EASTERN_ZONE);
+    System.out.println("Current Eastern Date & Time: " + nowEastern);
     //TODO long number = MIN + (long)(rand.nextDouble() * (MAX - MIN + 1));
     //try catch exceptions if the csvfile fails to load
     static{
         try{
             file = new csvFile(csvPath);
+            feeCheck = new csvFile(csvPathFee);
         }catch(IOException e)
         {
             e.printStackTrace();
@@ -130,8 +141,8 @@ public class SavingsAccount
     return false; //return false if there is no savings ID equal to another savings ID
 }
 
-//*******SETTERS AND GETTERS*******/
-    public double getSavings() //this will return savings.
+//*******SETTERS AND GETTERS******* UNUSED CODE.
+    /* public double getSavings() //this will return savings.
     { 
         return savingsbalance;
     }
@@ -139,6 +150,7 @@ public class SavingsAccount
     {
         savingsbalance = savings;
     }
+    */
     public double depositSavings(double depositamt)
     {
         if(depositamt > 0)
@@ -180,14 +192,22 @@ public class SavingsAccount
     //FEES
     public double minBalanceFee(double savingsbalance, String userid)throws IOException{  //If the user is below 100 then create or check if 24 hours passed.
         if(savingsbalance < 100)
-        { //Gotta implement a 24 hour system
+            { 
+                Instant now = Instant.now();
+
+                
+                
+                //Gotta implement a 24 hour system
             //TODO implement a time system that checks the time during runtime and compare it with the CSV if 24 hours passed then pass that fee to Checking
             //TODO write something if there is nothing
-            Map<String,String> saving_fee_file = file.getRecord("userid", userid);
+            Map<String,String> saving_fee_file = FeeCheck.getRecord("userid", userid);
             if(saving_fee_file == null)
             {
-                //GOAL HERE IS TO CREATE AN TIMESTAMP IF THE USER IS LESS THAN 100 MAKE SURE TO RECORD TIME -Younes Ziani
-
+              //GOAL HERE IS TO CREATE AN TIMESTAMP IF THE USER IS LESS THAN 100 MAKE SURE TO RECORD TIME -Younes Ziani
+            try(BufferedWriter bw = Files.newBufferedWriter(csvPathFee, StandardOpenOption.APPEND)){
+            bw.write(userid + "," + "WIP" + "," + Instantnow = Instant.now());
+            bw.newLine(); //make a new line when written.
+        }
             }
         }
         
