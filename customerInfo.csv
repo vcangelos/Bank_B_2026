@@ -1,1 +1,1 @@
-firstName,lastName,SSN,DOB,email,
+firstName,lastName,SSN,DOB,email,phoneNumber,SavingsAccount,CheckingAccount,CreditCard,creditCardLimit,creditScore,hasDebitCard,cdBalance,cdInterestRate;
