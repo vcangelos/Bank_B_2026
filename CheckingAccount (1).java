@@ -376,9 +376,32 @@ public class BankingCSV {
                     System.out.println("Invalid transfer type. Please enter 1 or 2.");
                 }
 
-            // View transaction history (placeholder)
-            } else if (select == 4) {
-                System.out.println("Transaction history is not yet implemented.");
+ //transaction history: use 2d array (withdrawls, deposits, purchases, fees -> for each: date, amount, new balance) 
+    // don't need to connect with savings account
+    //rows = single transaction, columns = transaction name, amount, date, balance after 
+    public void transactionHistory() {
+        System.out.println("Transactions");
+        
+        findUser(loadedUsers, "user").deposit("cusomer id", amount); 
+        findUser(loadedUsers, "user").withdraw("cusomer id", amount);
+        
+   // adds a row + columns required when a transaction is made 
+   for (int row = 0; row < transactionHistory.length; row++); { 
+       for (int column = 0; columns < transactionHistory.[row]; column++); { 
+       }
+   }
+   //to find the transactions that satify a condition (ex: deposits only) 
+       int count = 0; 
+for (int r = 0; r < transactionHistory.length; r++) { 
+    for (int c = 0; c < transactionHistory[r].length; c++) { 
+        if (amount[r][c] >= ) count++; 
+    } 
+} 
+System.out.println("# of " + __________ + " = " + count); 
+
+   //prints out info for the transaction made 
+    System.out.println("Date: " + | "Type: " + | "Amount:$ " + | "Balance After: " + );
+    
 
             // Show balances
             } else if (select == 5) {
