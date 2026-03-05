@@ -10,7 +10,7 @@ import java.util.ArrayList; //Array list is needed when we don't know the size o
 import java.nio.file.Path; //This function is used to find the file you want for example I'm using this to find my Savings.csv
 import java.nio.file.StandardOpenOption; //we don't want to overwrite when we create a savings ID account we want to append.
 import java.io.BufferedReader; //is used to read line by line
-import java.util.Map; //find something specific like "userid": 12992
+import java.util.Map; //find something specific like "userid": 12992 to initiate it you have to do Map<Key><Value> or more if needed an example is Map<String><String>  it looks like this "User": "Tom"
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.LocalTime;
@@ -32,23 +32,23 @@ public class SavingsAccount
     private String userid; //current userID lets say they registered or they were recent the constructor will use that and make THIS field equal to that.
     /*Static Final variables */
     private static final Path csvPath = Path.of("Savings.csv"); //fine the path for the CSV file
-     private static final Path csvPathFee = Path.of("SavingsFeeCheck"); //measuring 24 hour format.
+     private static final Path csvPathFee = Path.of("SavingsFeeCheck.csv"); //measuring 24 hour format.
     private static final long MAX = 199_999_999_999L; //This is the maximum for the savings number generator. //1000000000000 is Savings Account UNIQUE ID this is only for savings.
     private static final long MIN = 100_000_000_000L; //minimum for the random number generator
     private static final double minimumbalance = 100;
     private static final double maximumbalance = 300;
     private static final ZoneId EASTERN_ZONE = ZoneId.of("America/New_York");
-    private static final LocalTime CUTOFF = LocalTime.of(17, 0); // 5 PM
-    Instant now = Instant.now();
-.
-    ZonedDateTime nowEastern = ZonedDateTime.now(EASTERN_ZONE);
-    System.out.println("Current Eastern Date & Time: " + nowEastern);
+    private static final LocalTime CUTOFF = LocalTime.of(17, 0); // 5 PM the Bank operates 9-5PM
+    // Instant now = Instant.now(); example of how to use Instance the variable(object) equals to the current time only once meaning time is moving while the variable is only equal to a non incrementing time this is useful for when we want to start initiating fee 24 hour charge.
+
+    //ZonedDateTime nowEastern = ZonedDateTime.now(EASTERN_ZONE);
+    
     //TODO long number = MIN + (long)(rand.nextDouble() * (MAX - MIN + 1));
     //try catch exceptions if the csvfile fails to load
     static{
         try{
             file = new csvFile(csvPath);
-            feeCheck = new csvFile(csvPathFee);
+            FeeCheck = new csvFile(csvPathFee);
         }catch(IOException e)
         {
             e.printStackTrace();
@@ -114,6 +114,7 @@ public class SavingsAccount
 
     public static String RandomIDGenerator() throws IOException // make the randomIDGenerator a static so it doesn't belong to an object but an stabdard ID generator for savings ids
     {
+
         Random rand = new Random(); //rand can generate random numbers
         String ID; //make ID String so we can easily manipulate it in CSV like reading or writing it.
         do{
@@ -126,11 +127,11 @@ public class SavingsAccount
     }
     
     public static boolean savingsIDExists(String SavingsID) throws IOException //This is different to hasSavings savingsIDEXIST checks if there is a user with the same savings ID as another persons this code tries rerolling Savings ID until satisfied.
-    {
+    { //this function could be reworked so we can store all the Savings ID content to a variable called StoredIDs for example that is WIP
         try(BufferedReader reader = Files.newBufferedReader(csvPath)){
             reader.readLine(); //this line skips the header for example (userid,SavingsID,savings)
             String line;
-            while((line = reader.readLine()) != null){
+            while((line = reader.readLine()) != null){ //as line doesn't equal to NULL (end of file) continue.
                     ArrayList<String> currentdata_to_col = csvParsing.parseLine(line); //make numbers the column instead and changes the data in line to rows.
                 if(currentdata_to_col.size() > 2 && currentdata_to_col.get(2).equals(SavingsID))
                 {
@@ -138,10 +139,10 @@ public class SavingsAccount
                 }
             }
         }
-    return false; //return false if there is no savings ID equal to another savings ID
-}
+        return false; //return false if there is no savings ID equal to another savings ID
+    }
 
-//*******SETTERS AND GETTERS******* UNUSED CODE.
+//*******SETTERS AND GETTERS******* UNUSED CODE Debug code so I can use this for a custom main
     /* public double getSavings() //this will return savings.
     { 
         return savingsbalance;
@@ -151,6 +152,8 @@ public class SavingsAccount
         savingsbalance = savings;
     }
     */
+
+
     public double depositSavings(double depositamt)
     {
         if(depositamt > 0)
@@ -193,21 +196,30 @@ public class SavingsAccount
     public double minBalanceFee(double savingsbalance, String userid)throws IOException{  //If the user is below 100 then create or check if 24 hours passed.
         if(savingsbalance < 100)
             { 
-                Instant now = Instant.now();
 
+                Instant now = Instant.now();
+                ZonedDateTime eastern = now.atZone(EASTERN_ZONE);
+                boolean hasPaid = false; //not used yet it will be used when the writer is implemented.
                 
                 
                 //Gotta implement a 24 hour system
             //TODO implement a time system that checks the time during runtime and compare it with the CSV if 24 hours passed then pass that fee to Checking
             //TODO write something if there is nothing
             Map<String,String> saving_fee_file = FeeCheck.getRecord("userid", userid);
-            if(saving_fee_file == null)
+            if(saving_fee_file == null || saving_fee_file.isEmpty())
             {
-              //GOAL HERE IS TO CREATE AN TIMESTAMP IF THE USER IS LESS THAN 100 MAKE SURE TO RECORD TIME -Younes Ziani
-            try(BufferedWriter bw = Files.newBufferedWriter(csvPathFee, StandardOpenOption.APPEND)){
-            bw.write(userid + "," + "WIP" + "," + Instantnow = Instant.now());
-            bw.newLine(); //make a new line when written.
-        }
+                String date = eastern.toLocalDate().toString(); //translate the date for example 3/3/2026 into a string instead of a object.
+                //GOAL HERE IS TO CREATE AN TIMESTAMP IF THE USER IS LESS THAN 100 MAKE SURE TO RECORD TIME if there isn't anything written when they started. -Younes Ziani
+                try(BufferedWriter bw = Files.newBufferedWriter(csvPathFee, StandardOpenOption.APPEND)){
+                bw.write(userid + "," + date + "," + eastern + savingsbalance + hasPaid);
+                bw.newLine(); //make a new line when written.
+                }
+                catch(IOException e){
+                    e.printStackTrace(); //print the error.
+                }
+            }
+            else if(false){ //TODO 24 hour subtraction system in development.  - false there is a place holder I'll be comparing time.
+            //wip
             }
         }
         
