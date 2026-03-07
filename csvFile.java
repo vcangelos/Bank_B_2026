@@ -93,7 +93,7 @@ public class csvFile {
     }
 
     //so if we want to get any value (such as name given any id), we just pass in the id column's name, and the id value
-    public Map<String,String> getRecord(String recordCol, String recordValue) throws IOException
+    public Map<String,String> getRecord(String recordCol, String recordValue) throws IOException 
     {
         //Integer can be null compared to int - weird
         Integer recordIndex = headerIndex.get(recordCol);
