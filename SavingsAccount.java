@@ -11,11 +11,12 @@ import java.util.List;
 import java.nio.file.Path; //This function is used to find the file you want for example I'm using this to find my Savings.csv
 import java.nio.file.StandardOpenOption; //we don't want to overwrite when we create a savings ID account we want to append.
 import java.io.BufferedReader; //is used to read line by line
-import java.util.Map; //find something specific like "userid": 12992 to initiate it you have to do Map<Key><Value> or more if needed an example is Map<String><String>  it looks like this "User": "Tom"
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.LocalTime;
-import java.time.Instant;
+import java.time.ZoneId; //Ids such as "America/New York"
+import java.time.ZonedDateTime; //the time for that local area.
+import java.time.LocalTime; // just local time and not date.
+import java.time.Instant; //global time this is very useful for local conversions.
+import java.time.LocalDateTime; //convert to localdatetime for example New york eastern time.
+import java.time.Duration; //we need duration to subtract both times to see how many hours it is if it is over or equal to 24 hours then send out a fee otherwise don't
 
 public class SavingsAccount {
     /*** Variables ***/
@@ -25,8 +26,8 @@ public class SavingsAccount {
     private double minBalanceFee = 15; // TODO minimum balance fee is 15 dollars.
     private double monthlyFee = 12; // TODO monthly fee is 12 dollars.
     private double yearlyFee = 48; // TODO 48 dollars.
-    private static csvFile file; // csvFile equals to the path of the CSV file.
-    private static csvFile FeeCheck; // savingsFee will equal to CSVpathFee
+    //private static csvFile file; // csvFile equals to the path of the CSV file.
+    //private static csvFile FeeCheck; // savingsFee will equal to CSVpathFee
     private String userid; // current userID lets say they registered or they were recent the constructor
                            // will use that and make THIS field equal to that.
     private String employeeid;
@@ -34,6 +35,9 @@ public class SavingsAccount {
 
     private boolean hasemployee;
     private boolean hasuser;
+
+    /*SavingsFeeCheck variables */
+    
 
     /* Static Final variables */
     private static final Path csvPath = Path.of("Savings.csv"); // fine the path for the CSV file
@@ -53,14 +57,14 @@ public class SavingsAccount {
     // ZonedDateTime nowEastern = ZonedDateTime.now(EASTERN_ZONE);
     // TODO long number = MIN + (long)(rand.nextDouble() * (MAX - MIN + 1));
     // try catch exceptions if the csvfile fails to load
-    static {
+    /*static {
         try {
             file = new csvFile(csvPath);
             FeeCheck = new csvFile(csvPathFee);
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
+    }*/
 
     public SavingsAccount() // when creating
     {
@@ -87,19 +91,28 @@ public class SavingsAccount {
             while ((line = reader.readLine()) != null) {
                 String[] columnsplit = line.split(","); //split line into 3 columns instead of one huge string because we don't want that.
                 ArrayList<String> rowdata = new ArrayList<>(List.of(columnsplit)); //rowdata uses columnsplit for the data for ex. column split is like {"12020", "1929394949", 100.00} array list uses it.
-                long value = Long.parseLong(rowdata.get(1));
                 if (!rowdata.isEmpty() && rowdata.get(0).trim().equals(userid.trim())) { //trim is useful for comparing data when white space exists what it does is removes those white spaces.
 
                     return true; //return true because userID exists
                 }
-                if(!rowdata.get(1).isEmpty() || value > MIN && value <=MAX){
-                    String ID = RandomIDGenerator();
-                    rowdata.set(1,ID);
-
-                }
             }
         }
         return false;
+    }
+public static boolean SavingsIDExistsfeefile(String SavingsID) throws IOException {
+    try (BufferedReader reader = Files.newBufferedReader(csvPathFee)) {
+        reader.readLine(); // skip header
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.isBlank()) return false; // skip empty lines
+            String[] columnsplit = line.split(",", -1); // -1 preserves empty columns
+            if (columnsplit.length == 0) continue; // skip malformed lines
+            if (columnsplit[0].trim().equals(SavingsID.trim())) {
+                return true; // userID found
+            }
+        }
+    }
+    return false; // not found
     }
 
     public static SavingsAccount createSavingsAccount(String userid, double savingsamount) throws IOException {//
@@ -112,9 +125,12 @@ public class SavingsAccount {
             if (savingsamount == 100) {
                 account = new SavingsAccount();
                 account.userid = userid;
+                account.setSavingsID(SavingsID);
             } else if (savingsamount <= maximumbalance && savingsamount > minimumbalance) {
                 account = new SavingsAccount(userid, savingsamount);
-            } else {
+                account.setSavingsID(SavingsID);
+            } 
+            else {
                 throw new IllegalArgumentException("The Saivngs amount has to be in the range of 100-300");
             }
             try (BufferedWriter bw = Files.newBufferedWriter(csvPath, StandardOpenOption.APPEND)) {
@@ -126,64 +142,59 @@ public class SavingsAccount {
         }
     }
 
-    // public SavingsAccount createEmployeeSavingsAccount() //Main menu will make a
-    // boolean such as
+    public void OpenSavingsAccount()
     {
 
-        // TODO.
     }
 
-    public static String RandomIDGenerator() throws IOException // make the randomIDGenerator a static so it doesn't
-                                                                // belong to an object but an standard ID generator for
-                                                                // savings ids
+    // public SavingsAccount createEmployeeSavingsAccount() //Main menu will make a
+    // boolean such as
+    //{
+
+        // TODO.
+    //}
+
+    public static String RandomIDGenerator() throws IOException // make the randomIDGenerator a static so it doesn't belong to an object but an standard ID generator for savings ids
     {
         Random rand = new Random(); // rand can generate random numbers
         String ID; // make ID String so we can easily manipulate it in CSV like reading or writing
                    // it.
         do {
-            long number = (MIN) + (long) (rand.nextDouble() * (MAX - MIN + 1)); // to simplify this this is just saying
-                                                                                // make the number within the minimum
-                                                                                // and maximum.
+            long number = (MIN) + (long) (rand.nextDouble() * (MAX - MIN + 1)); //the random generator that is in the range of min-max
             ID = String.valueOf(number); // convert number to String so ID can equal to that string.
         } while (savingsIDExists(ID)); // Check if there is any Savings ID like it in the CSV file.
         return ID;
     }
 
-    public static boolean savingsIDExists(String SavingsID) throws IOException // This is different to hasSavings
-                                                                               // savingsIDEXIST checks if there is a
-                                                                               // user with the same savings ID as
-                                                                               // another persons this code tries
-                                                                               // rerolling Savings ID until satisfied.
-    { // this function could be reworked so we can store all the Savings ID content to
-      // a variable called StoredIDs for example that is WIP
-        try (BufferedReader reader = Files.newBufferedReader(csvPath)) {
+    public static boolean savingsIDExists(String SavingsID) throws IOException{ //SavingsID is used in the random generator so it wouldn't generate the same Savings ID as another persons Savings ID.
+    try (BufferedReader reader = Files.newBufferedReader(csvPath)) {            
             reader.readLine(); // this line skips the header for example (userid,SavingsID,savings)
             String line;
             while ((line = reader.readLine()) != null) { // as line doesn't equal to NULL (end of file) continue.
-                ArrayList<String> currentdata_to_col = csvParsing.parseLine(line); // make numbers the column instead
-                                                                                   // and changes the data in line to
-                                                                                   // rows.
+                ArrayList<String> currentdata_to_col = csvParsing.parseLine(line);
                 if (currentdata_to_col.size() > 2 && currentdata_to_col.get(1).equals(SavingsID)) {
                     return true;
                 }
             }
-        }
+        }                                                                         
         return false; // return false if there is no savings ID equal to another savings ID
     }
-    // *******SETTERS AND GETTERS******* UNUSED CODE Debug code so I can use this
-    // for a custom main
-    /*
-     * public double getSavings() //this will return savings.
-     * {
-     * return savingsbalance;
-     * }
-     * public void setSavings(double savings) //This will set Savings the private
-     * field to the parameter savings.
-     * {
-     * savingsbalance = savings;
-     * }
-     */
+    //START Both getSavings() and setSavings() are used for debugging.
+        public double getSavings()
+        {
+        return savingsbalance;
+        }
+        public void setSavings(double savings)
+        {//field to the parameter savings.
+        savingsbalance = savings;
+        }
+     //END
 
+
+    public void setSavingsID(String SavingsID)
+    {
+        this.SavingsID = SavingsID;
+    }
     public double depositSavings(double depositamt) {
         if (depositamt > 0) {
             return savingsbalance += depositamt;
@@ -193,8 +204,11 @@ public class SavingsAccount {
         return savingsbalance;
     }
 
-    public String getUserid() {
+    public String getUserid() { //testing to see UserID string
         return userid;
+    }
+    public String getSavingsID(){
+        return SavingsID;
     }
 
     // ************Withdraw system**************/
@@ -225,36 +239,54 @@ public class SavingsAccount {
     }
 
     // FEES
-    public double minBalanceFee(double savingsbalance, String userid) throws IOException { // If the user is below 100
-                                                                                           // then create or check if 24
-                                                                                           // hours passed.
+    public double minBalanceFee() throws IOException { // If the user is below 100
+        
         if (savingsbalance < 100) {
             Instant now = Instant.now();
+            System.out.println("Checkpoint!");
             ZonedDateTime eastern = now.atZone(EASTERN_ZONE);
-            boolean hasPaid = false; // not used yet it will be used when the writer is implemented.
-
-            // Gotta implement a 24 hour system
-            // TODO implement a time system that checks the time during runtime and compare
-            // it with the CSV if 24 hours passed then pass that fee to Checking
-            // TODO write something if there is nothing
-            Map<String, String> saving_fee_file = FeeCheck.getRecord("userid", userid);
-            if (saving_fee_file == null || saving_fee_file.isEmpty()) {
-                String date = eastern.toLocalDate().toString(); // translate the date for example 3/3/2026 into a string
-                                                                // instead of a object.
+            boolean isDaylight = EASTERN_ZONE.getRules().isDaylightSavings(eastern.toInstant());
+            boolean hasPaid = savingsbalance >= 100;                                                                     
+            if(!SavingsIDExistsfeefile(getSavingsID())) {
+                System.out.println("Test");
+                String date = eastern.toLocalDate().toString(); // translate the date for example 3/3/2026 into a string  instead of a object.
                 // GOAL HERE IS TO CREATE AN TIMESTAMP IF THE USER IS LESS THAN 100 MAKE SURE TO
                 // RECORD TIME if there isn't anything written when they started. -Younes Ziani
                 try (BufferedWriter bw = Files.newBufferedWriter(csvPathFee, StandardOpenOption.APPEND)) {
-                    bw.write(userid + "," + date + "," + eastern + savingsbalance + hasPaid);
+                    bw.write(this.SavingsID + "," + date + "," + eastern.withNano(0).toLocalDateTime() + "," + savingsbalance + "," + hasPaid + "," + isDaylight);            
                     bw.newLine(); // make a new line when written.
-                } catch (IOException e) {
-                    e.printStackTrace(); // print the error.
+                } 
+                catch (IOException e) {
+                            e.printStackTrace(); // print the error.
                 }
-            } else { // TODO 24 hour subtraction system in development. - false there is a place
-                     // holder I'll be comparing time.
-                // TODO
             }
+            else{
+                try(BufferedReader readcsvfee = Files.newBufferedReader(csvPathFee)){
+                    readcsvfee.readLine();
+                    String data;
+                    while((data = readcsvfee.readLine()) !=null){
+                        String[] currentdata = data.split(",");
+                        if(currentdata != null && currentdata[0].trim().equals(SavingsID)){ //make currentdata current line in the CSV formated something like this SavingsID,date,timeThen,savings,hasPaid,Daylight equal to userID so we can see if that account 
+                        
+                            LocalDateTime csvtime = LocalDateTime.parse(currentdata[2]);
+                            ZonedDateTime previous_time = csvtime.atZone(EASTERN_ZONE);
+                            long hours = Duration.between(previous_time.toInstant(), now).toHours(); 
+                            if(hours >= 24){
+                            this.savingsbalance -= minBalanceFee;
+                            }
+                        }
+                    }
+                }
+            }
+        }        
+        else{
+            Instant now = Instant.now();
+            ZonedDateTime eastern = now.atZone(EASTERN_ZONE);
+            boolean isDaylight = EASTERN_ZONE.getRules().isDaylightSavings(eastern.toInstant());
+            boolean hasPaid = savingsbalance >= 100;
         }
-        return 0.00;
+   
+    return 0.00;
     }
 
     public double overDraftFee() {
