@@ -155,6 +155,22 @@ public class CreditCard {
         return "Active";
     }
 
+    // Displays basic credit card details
+    public void display() {
+        System.out.println("Card Type: " + creditCardType);
+        System.out.println("Card Number: " + getFormattedCardNumber());
+        System.out.println("CVV: " + cvv);
+        System.out.println("Expiration Date: " + expirationDate);
+        System.out.printf("Balance: $%.2f%n", balance);
+        System.out.printf("Credit Limit: $%.2f%n", creditLimit);
+        System.out.printf("Monthly Spent: $%.2f%n", monthlySpent);
+        System.out.printf("Available Credit: $%.2f%n", getAvailableCredit());
+        System.out.println("Credit Score: " + creditScore);
+        System.out.println("Reward Points: " + rewardPoints);
+        System.out.println("Missed Payments: " + missedPayments);
+        System.out.println("Card Status: " + getCardStatus());
+    }
+
     // Detects suspicious purchases and freezes card
     private void detectFraud(double amount) {
         if (amount >= 1000.00) {
