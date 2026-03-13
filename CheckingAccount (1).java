@@ -17,7 +17,7 @@ public class BankingCSV {
         
         //Transaction History: 2d array
         //rows = single transaction, columns = transaction name, amount, date, balance after
-        String[][] transactionHistory = new String[100][4]; 
+        String[][] transactionHistory = new String[100][4]; //limit of 100 transactions
         int transactionCount = 0; 
         void addTransaction(String type, double amount) {
             if (transactionCount < 100) {
@@ -190,6 +190,7 @@ public class BankingCSV {
                     if (!acc.isActive) { System.out.println("Account " + accountID + " is inactive and cannot accept deposits."); return; }
                     acc.balance += amount;
                     acc.updateFlags();
+                    acc.addTransaction("Deposit", amount);
                     System.out.printf("Deposited $%.2f to %s. New balance: $%.2f%n", amount, accountID, acc.balance);
                     acc.checkAndApplyMinBalanceFee();
                     return;
@@ -213,6 +214,7 @@ public class BankingCSV {
                                 savingsAccount.balance -= shortfall;
                                 acc.balance = 0;
                                 acc.updateFlags();
+                                acc.addTransaction("Withdrawal", amount);
                                 System.out.printf("Withdrew $%.2f from %s (covered $%.2f shortfall from savings %s).%n",
                                     amount, accountID, shortfall, savingsAccount.accountID);
                                 System.out.printf("Checking balance: $0.00 | Savings balance: $%.2f%n", savingsAccount.balance);
@@ -224,6 +226,8 @@ public class BankingCSV {
                             }
                         } else {
                             acc.balance -= (amount + OVERDRAFT_FEE);
+                            acc.addTransaction("Withdrawal", amount);
+                            acc.addTransaction("Overdraft Fee", OVERDRAFT_FEE);
                             acc.updateFlags();
                             System.out.printf(
                                 "Overdraft! Withdrew $%.2f from %s. $%.2f fee applied. New balance: $%.2f%n",
@@ -256,6 +260,8 @@ public class BankingCSV {
             if (amount > from.balance) { System.out.println("Insufficient funds in " + fromAccountID); return; }
             from.balance -= amount;
             to.balance   += amount;
+            from.addTransaction("Transfer Out", amount);
+            to.addTransaction("Transfer In", amount);
             from.updateFlags();
             to.updateFlags();
             System.out.printf("Transferred $%.2f from checking %s to checking %s.%n", amount, fromAccountID, toAccountID);
@@ -273,6 +279,7 @@ public class BankingCSV {
             if (amount > from.balance)  { System.out.println("Insufficient funds in " + fromCheckingID); return; }
             from.balance           -= amount;
             savingsAccount.balance += amount;
+            from.addTransaction("Transfer to Savings", amount);
             from.updateFlags();
             System.out.printf("Transferred $%.2f from checking %s to savings %s.%n", amount, fromCheckingID, savingsAccount.accountID);
             System.out.printf("Checking balance: $%.2f | Savings balance: $%.2f%n", from.balance, savingsAccount.balance);
@@ -547,7 +554,7 @@ public class BankingCSV {
                     }
                 } else { System.out.println("Invalid transfer type. Please enter 1 or 2."); }
 
-            } else if (select == 4) { System.out.println("Transaction history is not yet implemented.");
+            } else if (select == 4) { user.accounts.get(0).printTransactionHistory();
             } else if (select == 5) { System.out.println("\n--- Your Accounts ---"); user.printAccounts();
             } else if (select == 6) { System.out.println("Goodbye!"); on = false;
             } else { System.out.println("Invalid selection. Please choose 1-6."); }
