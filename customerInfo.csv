@@ -1,1 +1,1 @@
-customerID,firstName,lastName,SSN,DOB,email,phoneNumber,BankLocation, bankPhoneNumber,SavingsAccount,CheckingAccount,CreditCard,creditCardLimit,creditScore,hasDebitCard,cdBalance,cdInterestRate,
+customerID,firstName,lastName,SSN,DOB,email,phoneNumber,State,City,Zipcode,BankLocation,bankPhoneNumber,SavingsAccount,CheckingAccount,CreditCard,creditCardLimit,creditScore,hasDebitCard,cdBalance,cdInterestRate,
