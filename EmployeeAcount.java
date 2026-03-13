@@ -16,18 +16,26 @@ public class EmployeeAccount {
         this.name = name;
 
         // --- LINK BANKING USER ---
-        // Try to find existing user
         this.bankingUser = BankingCSV.findUser(existingUsers, employeeID);
+
         if (this.bankingUser == null) {
-            // If not found, create new
             this.bankingUser = new BankingCSV.User(employeeID, name);
             existingUsers.add(this.bankingUser);
         }
 
+        // --- CREATE CARD NUMBER (instead of calling private method) ---
+        String generatedCardNumber = "4000-" + (int)(Math.random() * 100000000);
+
         // --- LINK DEBIT CARD ---
-        this.debitCard = new DebitCard(DebitCard.generateCardNumber(), "1234", employeeID, 
-                                       this.bankingUser.accounts.isEmpty() ? "NEW_ACCOUNT" 
-                                                                         : this.bankingUser.accounts.get(0).accountID);
+        this.debitCard = new DebitCard(
+                generatedCardNumber,
+                "1234",
+                employeeID,
+                this.bankingUser.accounts.isEmpty()
+                        ? "NEW_ACCOUNT"
+                        : this.bankingUser.accounts.get(0).accountID
+        );
+
         DebitCard.setBankingUsers(existingUsers);
 
         // --- LINK CREDIT CARD ---
@@ -41,9 +49,11 @@ public class EmployeeAccount {
     public DebitCard getDebitCard() { return debitCard; }
     public CreditCard getCreditCard() { return creditCard; }
 
-    // Convenience methods
+    // Show account info
     public void showAccounts() {
+
         System.out.println("Employee: " + name + " | ID: " + employeeID);
+
         System.out.println("\n--- Checking & Savings ---");
         bankingUser.printAccounts();
 
@@ -51,6 +61,8 @@ public class EmployeeAccount {
         debitCard.displayFeeSchedule();
 
         System.out.println("\n--- Credit Card ---");
-        creditCard.display();
+
+        // Removed creditCard.display() since it does not exist
+        System.out.println("Credit card linked for employee.");
     }
 }
