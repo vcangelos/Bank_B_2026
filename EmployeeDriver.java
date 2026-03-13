@@ -1,39 +1,19 @@
-// EmployeeDriver.java
-
-// Import Scanner, Map, List, etc.
 import java.util.*;
-
-// Import classes for file paths
 import java.nio.file.*;
-
-// Import classes for file input/output
 import java.io.*;
 
-// Main class that runs the employee database program
+// Main driver class that runs the employee lookup program
 public class EmployeeDriver {
 
-    // The main method is where Java programs start running
     public static void main(String[] args) throws Exception {
 
-        // Create a Scanner object to read user input from the keyboard
+        // Scanner allows us to read user input from the keyboard
         Scanner input = new Scanner(System.in);
 
-
-        // ---------------------------------------------------------
-        // 1. OPEN OR CREATE THE CSV FILE
-        // ---------------------------------------------------------
-
-        // csvFile is a custom class used to manage CSV data
-        // openOrCreate will:
-        // - open the file if it already exists
-        // - create a new one if it doesn't
-        // The Path.of() method creates a file path object
+        // 1. Open or create the CSV file that stores employee data
+        // If employees.csv does not exist, it will be created with these headers
         csvFile employees = csvFile.openOrCreate(
-
-                // Path.of creates a file path for employees.csv
                 Path.of("employees.csv"),
-
-                // These strings define the column headers in the CSV
                 "employee_id",
                 "name",
                 "salary",
@@ -42,152 +22,83 @@ public class EmployeeDriver {
                 "account_with_bank"
         );
 
-
-        // ---------------------------------------------------------
-        // 2. ADD SAMPLE EMPLOYEES IF FILE IS EMPTY
-        // ---------------------------------------------------------
-
-        // getRecord searches the CSV for a row where
-        // column "employee_id" equals "123111"
-        if (employees.getRecord("employee_id", "123111") == null) {
-
-            // If no record exists, add sample employees
-
-            employees.addRecord(
-                    "123111",          // employee_id
-                    "Alice Smith",     // name
-                    "40000",           // salary
-                    "123 Main St",     // address
-                    "Teller",          // job position
-                    "true"             // whether they have a bank account
-            );
-
-            employees.addRecord(
-                    "895195",
-                    "Bobby Johnson",
-                    "63000",
-                    "456 Secondary St",
-                    "Loan Officer",
-                    "true"
-            );
-        }
+        // NOTE:
+        // I removed addRecord() because that method does not exist in csvFile.
+        // The program now assumes employees already exist in the CSV.
 
 
-        // ---------------------------------------------------------
-        // 3. ASK USER FOR ACCESS CODE
-        // ---------------------------------------------------------
-
-        // Prompt user
+        // 2. Ask the user for an employee ID to access the system
         System.out.println("Enter your employee ID to access the database:");
-
-        // nextInt reads an integer from user input
         int accessCode = input.nextInt();
 
-        // nextInt does not remove the newline character
+        // nextInt() leaves a newline character in the scanner
         // so we clear it with nextLine()
         input.nextLine();
 
 
-        // ---------------------------------------------------------
-        // 4. ACCESS CHECK
-        // ---------------------------------------------------------
-
-        // This checks if the entered code matches one of the allowed IDs
+        // 3. Simple access check
+        // Only these IDs can access the database
         if (accessCode == 123456 || accessCode == 123195 || accessCode == 123851) {
 
-            // If correct code
             System.out.println("Access Granted.");
 
-
-            // ---------------------------------------------------------
-            // ASK WHICH EMPLOYEE TO SEARCH
-            // ---------------------------------------------------------
-
+            // Ask the user which employee they want to search for
             System.out.println("Enter employee name:");
-
-            // Read the employee name
             String nameInput = input.nextLine();
 
 
-            // ---------------------------------------------------------
-            // SEARCH CSV DATABASE
-            // ---------------------------------------------------------
-
-            // getRecord searches the CSV for a row
-            // where column "name" matches nameInput
+            // Search the CSV for a record where the "name" column matches nameInput
             Map<String, String> record = employees.getRecord("name", nameInput);
 
 
-            // ---------------------------------------------------------
-            // IF EMPLOYEE EXISTS
-            // ---------------------------------------------------------
-
+            // If a matching employee is found
             if (record != null) {
 
-                // Create an Employee object using data from the CSV
-
+                // Create an Employee object using the values from the CSV record
                 Employee emp = new Employee(
 
-                        // Integer.parseInt converts String -> int
-                        // CSV stores numbers as text so we convert them
+                        // Convert salary from String → int
                         Integer.parseInt(record.get("salary")),
 
-                        // address stored as String
+                        // Address
                         record.get("address"),
 
-                        // job position
+                        // Job position
                         record.get("position"),
 
-                        // convert employee_id String -> int
+                        // Convert employee_id from String → int
                         Integer.parseInt(record.get("employee_id")),
 
-                        // Boolean.parseBoolean converts "true"/"false" text -> boolean
+                        // Convert text "true"/"false" → boolean
                         Boolean.parseBoolean(record.get("account_with_bank")),
 
-                        // employee name
+                        // Employee name
                         record.get("name")
                 );
 
 
-                // ---------------------------------------------------------
-                // DISPLAY EMPLOYEE INFORMATION
-                // ---------------------------------------------------------
-
+                // Display employee information
                 System.out.println("\n--- EMPLOYEE INFO ---");
-
-                // Use getter methods from the Employee class
-
                 System.out.println("Name: " + emp.getName());
-
                 System.out.println("Salary: $" + emp.getSalary());
-
                 System.out.println("Position: " + emp.getPosition());
-
                 System.out.println("Address: " + emp.getAddress());
-
                 System.out.println("Has Bank Account? " + emp.getAccountWithBank());
-
                 System.out.println("Employee ID: " + emp.getEmployeeID());
-
 
             } else {
 
-                // If no matching employee is found
+                // If no employee with that name exists
                 System.out.println("Employee not found.");
             }
 
         } else {
 
-            // If access code is incorrect
+            // If access code does not match
             System.out.println("Access Denied.");
         }
 
-
-        // ---------------------------------------------------------
-        // CLOSE SCANNER
-        // ---------------------------------------------------------
-
-        // Closing Scanner prevents memory leaks
+        // Close scanner to prevent resource leaks
         input.close();
     }
 }
