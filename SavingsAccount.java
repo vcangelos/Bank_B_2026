@@ -80,21 +80,19 @@ public class SavingsAccount {
            String line; //String line not initialized yet
            while ((line = reader.readLine()) != null) {
                String[] columnsplit = line.split(","); //split line into 3 columns instead of one huge string because we don't want that.
-               ArrayList<String> rowdata = new ArrayList<>(List.of(columnsplit)); //rowdata uses columnsplit for the data for ex. column split is like {"12020", "1929394949", 100.00} array list uses it.
-               if (!rowdata.isEmpty() && rowdata.get(0).trim().equals(userid.trim())) { //trim is useful for comparing data when white space exists what it does is removes those white spaces.
+               if (columnsplit.length > 0 && columnsplit[0].trim().equals(userid.trim())) { //trim is useful for comparing data when white space exists what it does is removes those white spaces.
                    return true; //return true because userID exists
                }
            }
        }
        return false;
    }
-public static boolean SavingsIDExistsfeefile(String SavingsID) throws IOException {
-   try (BufferedReader reader = Files.newBufferedReader(csvPathFee)) {
+    public static boolean SavingsIDExistsfeefile(String SavingsID) throws IOException {
+    try (BufferedReader reader = Files.newBufferedReader(csvPathFee)) {
        reader.readLine(); // skip header
        String line;
        while ((line = reader.readLine()) != null) {
-           if (line.isBlank()) return false; // skip empty lines
-           String[] columnsplit = line.split(",", -1); // -1 preserves empty columns
+           String[] columnsplit = line.split(",");
            if (columnsplit.length == 0) continue; // skip malformed lines
            if (columnsplit[0].trim().equals(SavingsID.trim())) {
                return true; // userID found
@@ -128,8 +126,20 @@ public static boolean SavingsIDExistsfeefile(String SavingsID) throws IOExceptio
            return account;
        }
    }
-   public void OpenSavingsAccount(String userid)
-   {
+   public static void OpenSavingsAccount(String userid) throws IOException{
+    if(userIDExists(userid))
+    {
+        System.out.println("You're logged in");
+
+        try(BufferedReader readlines = Files.newBufferedReader(csvPath)){
+
+        }
+    }
+    else
+    {
+        System.out.println("Account doesn't exist create it.");
+
+    }
     
    }
    // public SavingsAccount createEmployeeSavingsAccount() //Main menu will make a
@@ -217,20 +227,17 @@ public static boolean SavingsIDExistsfeefile(String SavingsID) throws IOExceptio
        return savingsbalance;
    }
    // FEES
-   public double minBalanceFee() throws IOException { // If the user is below 100
+   public double minBalanceFee() throws IOException { // Minbalancefee it has 2 main checks to see if it is less than 100$ of savings balance or more than 100$ to be capable of paying it. use a temporary csv file to rewrite the original to get rid of already paid or people who had been forced to be fee the timelimit is 24 hours.
        if (savingsbalance < 100) {
            Instant now = Instant.now();
-           System.out.println("Checkpoint!");
            ZonedDateTime eastern = now.atZone(EASTERN_ZONE);
            boolean isDaylight = EASTERN_ZONE.getRules().isDaylightSavings(eastern.toInstant());
-           boolean hasPaid = false;                                                                    
+           boolean hasPaidminfee = false;                                                                    
            if(!SavingsIDExistsfeefile(getSavingsID())) {
-               System.out.println("Test");
-               String date = eastern.toLocalDate().toString(); // translate the date for example 3/3/2026 into a string  instead of a object.
                // GOAL HERE IS TO CREATE AN TIMESTAMP IF THE USER IS LESS THAN 100 MAKE SURE TO
                // RECORD TIME if there isn't anything written when they started. -Younes Ziani
                try (BufferedWriter bw = Files.newBufferedWriter(csvPathFee, StandardOpenOption.APPEND)) {
-                   bw.write(this.SavingsID + "," + date + "," + eastern.withNano(0).toLocalDateTime() + "," + savingsbalance + "," + hasPaid + "," + isDaylight); //            
+                   bw.write(this.SavingsID +  "," + eastern.withNano(0).toLocalDateTime() + "," + savingsbalance + "," + hasPaidminfee + "," + false + "," + isDaylight); //            
                    bw.newLine(); // make a new line when written.
                }
                catch (IOException e) {
@@ -238,44 +245,39 @@ public static boolean SavingsIDExistsfeefile(String SavingsID) throws IOExceptio
                }
            }
            else{
-               try(BufferedReader readcsvfee = Files.newBufferedReader(csvPathFee)){
-                   String data;
+                Path tempfile = Files.createTempFile("csv_temp", ".csv");
+                try(BufferedReader readcsvfee = Files.newBufferedReader(csvPathFee); BufferedWriter writetempcsv = Files.newBufferedWriter(tempfile)){
+                    String data;
+                    
 
-                }
-                   while((data = readcsvfee.readLine()) !=null){
+                    while((data = readcsvfee.readLine()) !=null){
                        String[] currentdata = data.split(",");
                        if(currentdata != null && currentdata[0].trim().equals(SavingsID)){ //make currentdata current line in the CSV formated something like this SavingsID,date,timeThen,savings,hasPaid,Daylight equal to userID so we can see if that account
-                           LocalDateTime csvtime = LocalDateTime.parse(currentdata[2]);
+                           LocalDateTime csvtime = LocalDateTime.parse(currentdata[1]);
                            ZonedDateTime previous_time = csvtime.atZone(EASTERN_ZONE);
                            long hours = Duration.between(previous_time.toInstant(), now).toHours();
-                           boolean removeline;
+                           
                            if(hours >= 24){
                            this.savingsbalance -= minBalanceFee;
-                           removeline = true;
-                           hasPaid = false;
                            continue;
                            }
-                           else{
-                            hasPaid = true;
-                            removeline = false;
-                            continue;
-                           }
-                       }
-                       if(!removeline)
-                       {
-                       writecsvfee(data)
-                       writecsvfee.newLine();
-                       }
+                        }   
+                        writetempcsv.write(data);
+                        writetempcsv.newLine();
                    }
-               }
-           }
+                   Files.move(tempfile, csvPathFee, java.nio.file.StandardCopyOption.REPLACE_EXISTING); //replace the CSV file with TEMP.
+                }
+                catch(IOException io){
+                    io.printStackTrace();
+                }
+               
+            }
+           
        }        
        else{
            Instant now = Instant.now();
            ZonedDateTime eastern = now.atZone(EASTERN_ZONE);
            boolean isDaylight = EASTERN_ZONE.getRules().isDaylightSavings(eastern.toInstant());
-           boolean hasPaid;
-           boolean evadeFee;
            Path tempfile = Files.createTempFile("csv_temp", ".csv");
            
            if(SavingsIDExistsfeefile(getSavingsID())) {
@@ -292,16 +294,12 @@ public static boolean SavingsIDExistsfeefile(String SavingsID) throws IOExceptio
                 while((data = readcsvfee.readLine()) != null){ //Read CSV DATA
                     String[] currentdata = data.split(",");
                     if(currentdata[0].trim().equals(SavingsID)){ //make currentdata current line in the CSV formated something like this SavingsID,date,timeThen,savings,hasPaid,Daylight equal to userID so we can see if that account
-                        LocalDateTime csvtime = LocalDateTime.parse(currentdata[2]); //parse date time in column 3
+                        LocalDateTime csvtime = LocalDateTime.parse(currentdata[1]); //parse date time in column 2
                         ZonedDateTime previous_time = csvtime.atZone(EASTERN_ZONE); // use csvtime to change it to easternZone
                         long hours = Duration.between(previous_time.toInstant(), now).toHours(); //compare previous tiem and now(current time).
                         if(hours >= 24){ //hours greater than 24 add a minbalancefee to savings.
                         this.savingsbalance -= minBalanceFee;
-                        hasPaid = false;
-                    }
-                    else{
-                        evadeFee = true; //if less than 24 hours then you can avoid it.
-                    }
+                        }
                         continue;
                     }
                     writecsvfee.write(data); //write data except if the user paid or evaded fee.
@@ -310,10 +308,21 @@ public static boolean SavingsIDExistsfeefile(String SavingsID) throws IOExceptio
                 Files.move(tempfile, csvPathFee, java.nio.file.StandardCopyOption.REPLACE_EXISTING); //replace the CSV file with TEMP.
             }
         }
-   return 0.00;
+        }
+    return 0.00;
     }
-   public double overDraftFee() {
-       // TODO.
-       return 0.00;
-   }
+    //Under here is TODO.
+    public double overDraftFee() { //OVERDRAFT FEE I need to research into this more.
+    return 0.0;
+    }
+    public double monthlyFee()
+    {
+    return 0.0;
+    }
+    public double yearlyFee()
+    {
+    return 0.0;
+    }
+       
 }
+
