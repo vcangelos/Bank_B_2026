@@ -7,7 +7,6 @@ import java.io.BufferedWriter; //This helps us write data to the CSV file.
 import java.io.IOException; //catch errors if anything silly happens.
 import java.nio.file.Files; //to make it easier to access the files read and write functions. Our HasSavings is a static so we need static methods to make the code work. Files work hand to hand with path objects instead of using Strings we could use that which makes it platform independent.
 import java.util.ArrayList; //Array list is needed when we don't know the size of an array or when we resize an array if you see SavingsIDexists I used array list to capture all the columns and use it to compare with the current savings ID with the savings ID in the current array list. Something like this psuedocode currentsavingsID = currentarraylistsavings.
-import java.util.List;
 import java.nio.file.Path; //This function is used to find the file you want for example I'm using this to find my Savings.csv
 import java.nio.file.StandardOpenOption; //we don't want to overwrite when we create a savings ID account we want to append.
 import java.io.BufferedReader; //is used to read line by line
@@ -126,21 +125,34 @@ public class SavingsAccount {
            return account;
        }
    }
-   public static void OpenSavingsAccount(String userid) throws IOException{
+   public static SavingsAccount OpenSavingsAccount(String userid) throws IOException{
     if(userIDExists(userid))
     {
         System.out.println("You're logged in");
 
         try(BufferedReader readlines = Files.newBufferedReader(csvPath)){
-
+            readlines.readLine();
+            String currentline;
+            while((currentline = readlines.readLine()) != null){
+                String[] currentdata = currentline.split(",");
+                if(currentdata[0].trim().equals(userid))
+                {
+                    SavingsAccount account = new SavingsAccount();
+                    account.userid = userid;
+                    account.savingsbalance = Double.parseDouble(currentdata[2]);
+                    account.SavingsID = currentdata[1];
+                    return account;
+                }
+                
+            }
         }
     }
     else
     {
         System.out.println("Account doesn't exist create it.");
-
+        
     }
-    
+    return null;
    }
    // public SavingsAccount createEmployeeSavingsAccount() //Main menu will make a
    // boolean such as
@@ -227,32 +239,31 @@ public class SavingsAccount {
        return savingsbalance;
    }
    // FEES
-   public double minBalanceFee() throws IOException { // Minbalancefee it has 2 main checks to see if it is less than 100$ of savings balance or more than 100$ to be capable of paying it. use a temporary csv file to rewrite the original to get rid of already paid or people who had been forced to be fee the timelimit is 24 hours.
-       if (savingsbalance < 100) {
-           Instant now = Instant.now();
+   public double minBalanceFee() throws IOException { // Minbalancefee has 2 main checks to see if it is less than 100$ or more than 100$ to be capable of paying it.
+       if (savingsbalance < 100) { //checks if balance is less than 100 to see if savingsID exists or not 
+           Instant now = Instant.now(); //use currenttime meaning what time it is to whomever is reading this code.
            ZonedDateTime eastern = now.atZone(EASTERN_ZONE);
            boolean isDaylight = EASTERN_ZONE.getRules().isDaylightSavings(eastern.toInstant());
            boolean hasPaidminfee = false;                                                                    
            if(!SavingsIDExistsfeefile(getSavingsID())) {
-               // GOAL HERE IS TO CREATE AN TIMESTAMP IF THE USER IS LESS THAN 100 MAKE SURE TO
+
                // RECORD TIME if there isn't anything written when they started. -Younes Ziani
                try (BufferedWriter bw = Files.newBufferedWriter(csvPathFee, StandardOpenOption.APPEND)) {
                    bw.write(this.SavingsID +  "," + eastern.withNano(0).toLocalDateTime() + "," + savingsbalance + "," + hasPaidminfee + "," + false + "," + isDaylight); //            
                    bw.newLine(); // make a new line when written.
                }
                catch (IOException e) {
-                           e.printStackTrace(); // print the error.
+                    e.printStackTrace(); // print the error.
                }
            }
            else{
-                Path tempfile = Files.createTempFile("csv_temp", ".csv");
-                try(BufferedReader readcsvfee = Files.newBufferedReader(csvPathFee); BufferedWriter writetempcsv = Files.newBufferedWriter(tempfile)){
+                Path tempfile = Files.createTempFile("csv_temp", ".csv");   //(time limit is 24 hours)temporary csv file to rewrite the original to get rid of already paid the fewer people who had been forced to pay fee
                     String data;
                     
 
                     while((data = readcsvfee.readLine()) !=null){
                        String[] currentdata = data.split(",");
-                       if(currentdata != null && currentdata[0].trim().equals(SavingsID)){ //make currentdata current line in the CSV formated something like this SavingsID,date,timeThen,savings,hasPaid,Daylight equal to userID so we can see if that account
+                       if(currentdata != null && currentdata[0].trim().equals(SavingsID)){ //currentdata equals SavingsID or else don't run it.
                            LocalDateTime csvtime = LocalDateTime.parse(currentdata[1]);
                            ZonedDateTime previous_time = csvtime.atZone(EASTERN_ZONE);
                            long hours = Duration.between(previous_time.toInstant(), now).toHours();
@@ -277,7 +288,7 @@ public class SavingsAccount {
        else{
            Instant now = Instant.now();
            ZonedDateTime eastern = now.atZone(EASTERN_ZONE);
-           boolean isDaylight = EASTERN_ZONE.getRules().isDaylightSavings(eastern.toInstant());
+           //boolean isDaylight = EASTERN_ZONE.getRules().isDaylightSavings(eastern.toInstant());  UNUSED
            Path tempfile = Files.createTempFile("csv_temp", ".csv");
            
            if(SavingsIDExistsfeefile(getSavingsID())) {
@@ -293,7 +304,7 @@ public class SavingsAccount {
                 String data;
                 while((data = readcsvfee.readLine()) != null){ //Read CSV DATA
                     String[] currentdata = data.split(",");
-                    if(currentdata[0].trim().equals(SavingsID)){ //make currentdata current line in the CSV formated something like this SavingsID,date,timeThen,savings,hasPaid,Daylight equal to userID so we can see if that account
+                    if(currentdata[0].trim().equals(SavingsID) && currentdata[3].trim().equals(true){ //make currentdata current line in the CSV formated something like this SavingsID,date,timeThen,savings,hasPaid,Daylight equal to userID so we can see if that account
                         LocalDateTime csvtime = LocalDateTime.parse(currentdata[1]); //parse date time in column 2
                         ZonedDateTime previous_time = csvtime.atZone(EASTERN_ZONE); // use csvtime to change it to easternZone
                         long hours = Duration.between(previous_time.toInstant(), now).toHours(); //compare previous tiem and now(current time).
@@ -313,6 +324,7 @@ public class SavingsAccount {
     }
     //Under here is TODO.
     public double overDraftFee() { //OVERDRAFT FEE I need to research into this more.
+
     return 0.0;
     }
     public double monthlyFee()
