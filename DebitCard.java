@@ -1,6 +1,7 @@
 import java.time.LocalDate;
 import java.nio.file.Path;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.Map;
 import java.util.List;
 import java.util.Random;
@@ -28,6 +29,7 @@ public class DebitCard {
     
     // CSV paths
     private static final Path CUSTOMER_CSV_PATH = Path.of("customerInfo.csv");
+    private static final Path DEBIT_CARD_CSV_PATH = Path.of("debitCard.csv");
     
     // Reference to checking account system
     private static List<BankingCSV.User> bankingUsers;
@@ -52,7 +54,7 @@ public class DebitCard {
         bankingUsers = users;
     }
     
-    // OVERLOADED: Generate card number with issuer (NEW)
+    // OVERLOADED: Generate card number with issuer
     public static String generateCardNumber(String issuer) {
         StringBuilder cardNumber = new StringBuilder();
         Random rand = new Random();
@@ -99,11 +101,12 @@ public class DebitCard {
         return cardNumber.toString();
     }
     
-    // OVERLOADED: Generate card number without issuer (defaults to Visa) - For EmployeeAccount backward compatibility
+    // OVERLOADED: Generate card number without issuer (defaults to Visa)
     public static String generateCardNumber() {
         return generateCardNumber("Visa");
     }
     
+    // Update customerInfo.csv
     private static void updateCustomerCSV(String customerId, boolean hasDebitCard) throws IOException {
         List<String> lines = Files.readAllLines(CUSTOMER_CSV_PATH);
         
@@ -129,7 +132,72 @@ public class DebitCard {
         Files.write(CUSTOMER_CSV_PATH, lines);
     }
     
-    public static DebitCard issueCard(Scanner scanner, String customerId, String pin) {
+    // NEW: Save to debitCard.csv
+    private static void saveToDebitCardCSV(String userid, String firstName, String lastName, String pin) throws IOException {
+        // Check if CSV exists, create it if not
+        if (!Files.exists(DEBIT_CARD_CSV_PATH)) {
+            List<String> headers = java.util.Arrays.asList("userid, firstname, lastname, debitBalance, debitPin");
+            Files.write(DEBIT_CARD_CSV_PATH, headers);
+        }
+        
+        // Initial debit balance is 0.00
+        String line = String.format("%s, %s, %s, %.2f, %s",
+            userid,
+            firstName,
+            lastName,
+            0.00,
+            pin
+        );
+        
+        Files.write(DEBIT_CARD_CSV_PATH, java.util.Arrays.asList(line),
+            StandardOpenOption.APPEND);
+    }
+    
+    // NEW: Update debitBalance in debitCard.csv
+    private static void updateDebitBalance(String userid, double newBalance) throws IOException {
+        if (!Files.exists(DEBIT_CARD_CSV_PATH)) {
+            return;
+        }
+        
+        List<String> lines = Files.readAllLines(DEBIT_CARD_CSV_PATH);
+        
+        for (int i = 1; i < lines.size(); i++) {
+            String line = lines.get(i);
+            String[] fields = line.split(",");
+            
+            if (fields.length > 0 && fields[0].trim().equals(userid)) {
+                // Update balance (index 3)
+                fields[3] = String.format(" %.2f", newBalance);
+                lines.set(i, String.join(",", fields));
+                break;
+            }
+        }
+        
+        Files.write(DEBIT_CARD_CSV_PATH, lines);
+    }
+    
+    // NEW: Get PIN from debitCard.csv
+    public static String getPINFromCSV(String userid) {
+        try {
+            if (!Files.exists(DEBIT_CARD_CSV_PATH)) {
+                return null;
+            }
+            
+            csvFile debitFile = new csvFile(DEBIT_CARD_CSV_PATH);
+            Map<String, String> record = debitFile.getRecord("userid", userid);
+            
+            if (record != null) {
+                return record.get("debitPin").trim();
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading PIN from CSV: " + e.getMessage());
+        }
+        
+        return null;
+    }
+    
+    // Issue card for regular customer with PIN creation
+    public static DebitCard issueCard(Scanner scanner, String customerId) {
         try {
             csvFile customerFile = new csvFile(CUSTOMER_CSV_PATH);
             Map<String, String> customerRecord = customerFile.getRecord("customerID", customerId);
@@ -162,6 +230,7 @@ public class DebitCard {
             
             String accountId = user.accounts.get(0).accountID;
             
+            // STEP 1: Select card issuer
             System.out.println("\n=== Select Card Issuer ===");
             System.out.println("1. Visa");
             System.out.println("2. Mastercard");
@@ -170,6 +239,7 @@ public class DebitCard {
             
             System.out.print("\nSelect card issuer (1-4): ");
             int choice = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
             
             String cardIssuer;
             switch (choice) {
@@ -182,11 +252,57 @@ public class DebitCard {
                     cardIssuer = "Visa";
             }
             
+            // STEP 2: Create PIN
+            String pin = "";
+            boolean validPin = false;
+            
+            while (!validPin) {
+                System.out.print("\nCreate a 4-digit PIN: ");
+                pin = scanner.nextLine().trim();
+                
+                // Validate PIN length
+                if (pin.length() != 4) {
+                    System.out.println("Error: PIN must be exactly 4 digits.");
+                    continue;
+                }
+                
+                // Check if all characters are digits
+                boolean allDigits = true;
+                for (char c : pin.toCharArray()) {
+                    if (!Character.isDigit(c)) {
+                        allDigits = false;
+                        break;
+                    }
+                }
+                
+                if (!allDigits) {
+                    System.out.println("Error: PIN must contain only numbers (0-9).");
+                    continue;
+                }
+                
+                // Confirm PIN
+                System.out.print("Confirm your 4-digit PIN: ");
+                String confirmPin = scanner.nextLine().trim();
+                
+                if (!pin.equals(confirmPin)) {
+                    System.out.println("Error: PINs do not match. Please try again.");
+                    continue;
+                }
+                
+                validPin = true;
+            }
+            
+            // STEP 3: Generate card number
             String cardNumber = DebitCard.generateCardNumber(cardIssuer);
             
+            // STEP 4: Create the card
             DebitCard card = new DebitCard(cardNumber, cardIssuer, pin, customerId, accountId);
             
+            // STEP 5: Update customerInfo.csv
             updateCustomerCSV(customerId, true);
+            
+            // STEP 6: Save to debitCard.csv
+            saveToDebitCardCSV(customerId, firstName, lastName, pin);
             
             System.out.println("\n✓ Debit card issued successfully!");
             System.out.println("  Customer: " + firstName + " " + lastName);
@@ -194,7 +310,8 @@ public class DebitCard {
             System.out.println("  Card Number: " + cardNumber);
             System.out.println("  Card Length: " + cardNumber.length() + " digits");
             System.out.println("  Linked Account: " + accountId);
-            System.out.println("  PIN: " + pin);
+            System.out.println("  PIN: ****");
+            System.out.println("\n⚠ IMPORTANT: Remember your PIN! You will need it to use your card.");
             
             return card;
             
@@ -254,6 +371,14 @@ public class DebitCard {
         for (BankingCSV.Account acc : user.accounts) {
             if (acc.accountID.equals(linkedAccountId)) {
                 System.out.println("Balance for account " + linkedAccountId + ": $" + String.format("%.2f", acc.balance));
+                
+                // Update debitBalance in debitCard.csv
+                try {
+                    updateDebitBalance(linkedCustomerId, acc.balance);
+                } catch (IOException e) {
+                    System.out.println("Warning: Could not update debitCard.csv");
+                }
+                
                 return acc.balance;
             }
         }
@@ -280,6 +405,18 @@ public class DebitCard {
         }
         
         user.withdraw(linkedAccountId, amount);
+        
+        // Update debitBalance in debitCard.csv
+        for (BankingCSV.Account acc : user.accounts) {
+            if (acc.accountID.equals(linkedAccountId)) {
+                try {
+                    updateDebitBalance(linkedCustomerId, acc.balance);
+                } catch (IOException e) {
+                    System.out.println("Warning: Could not update debitCard.csv");
+                }
+                break;
+            }
+        }
         
         return true;
     }
@@ -312,6 +449,18 @@ public class DebitCard {
         
         user.withdraw(linkedAccountId, totalWithdrawal);
         
+        // Update debitBalance in debitCard.csv
+        for (BankingCSV.Account acc : user.accounts) {
+            if (acc.accountID.equals(linkedAccountId)) {
+                try {
+                    updateDebitBalance(linkedCustomerId, acc.balance);
+                } catch (IOException e) {
+                    System.out.println("Warning: Could not update debitCard.csv");
+                }
+                break;
+            }
+        }
+        
         return true;
     }
     
@@ -342,6 +491,18 @@ public class DebitCard {
         
         user.withdraw(linkedAccountId, totalCharge);
         
+        // Update debitBalance in debitCard.csv
+        for (BankingCSV.Account acc : user.accounts) {
+            if (acc.accountID.equals(linkedAccountId)) {
+                try {
+                    updateDebitBalance(linkedCustomerId, acc.balance);
+                } catch (IOException e) {
+                    System.out.println("Warning: Could not update debitCard.csv");
+                }
+                break;
+            }
+        }
+        
         return true;
     }
     
@@ -363,6 +524,18 @@ public class DebitCard {
         }
         
         user.deposit(linkedAccountId, amount);
+        
+        // Update debitBalance in debitCard.csv
+        for (BankingCSV.Account acc : user.accounts) {
+            if (acc.accountID.equals(linkedAccountId)) {
+                try {
+                    updateDebitBalance(linkedCustomerId, acc.balance);
+                } catch (IOException e) {
+                    System.out.println("Warning: Could not update debitCard.csv");
+                }
+                break;
+            }
+        }
         
         return true;
     }
@@ -390,6 +563,18 @@ public class DebitCard {
         user.withdraw(linkedAccountId, MONTHLY_MAINTENANCE_FEE);
         
         lastMaintenanceFeeDate = today;
+        
+        // Update debitBalance in debitCard.csv
+        for (BankingCSV.Account acc : user.accounts) {
+            if (acc.accountID.equals(linkedAccountId)) {
+                try {
+                    updateDebitBalance(linkedCustomerId, acc.balance);
+                } catch (IOException e) {
+                    System.out.println("Warning: Could not update debitCard.csv");
+                }
+                break;
+            }
+        }
         
         return true;
     }
