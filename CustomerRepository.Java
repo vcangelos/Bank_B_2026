@@ -4,53 +4,79 @@ import java.io.IOException;
 
 public class CustomerRepository {
 
-    public static final String FILE_NAME = "customers.csv";
+    private static final String FILE_NAME = "customers.csv";
 
     /**
      * Initialize CSV file with header if it does not exist.
      */
     public static void initializeCSV() throws IOException {
+
         File file = new File(FILE_NAME);
+
         if (!file.exists()) {
-            FileWriter writer = new FileWriter(file);
-            writer.write(
-                "customerID,firstName,lastName,SSN,DOB,email,phoneNumber,BankLocation," +
-                "bankPhoneNumber,SavingsAccount,CheckingAccount,CreditCard,creditCardLimit," +
-                "creditScore,hasDebitCard,cdBalance,cdInterestRate\n"
-            );
-            writer.close();
+
+            try (FileWriter writer = new FileWriter(file)) {
+
+                writer.write(
+                    "customerID,firstName,lastName,ssn,dob,email,phoneNumber,bankLocation," +
+                    "bankPhoneNumber,savingsAccount,checkingAccount,creditCard,creditCardLimit," +
+                    "creditScore,hasDebitCard,cdBalance,cdInterestRate\n"
+                );
+
+            }
+
         }
     }
 
     /**
      * Save a customer directly to CSV.
-     * This does NOT use ArrayList or memory storage.
      */
     public static void saveCustomerToCSV(Customer customer) throws IOException {
 
-        // Open in append mode
-        FileWriter writer = new FileWriter(FILE_NAME, true);
+        if (customer == null) {
+            throw new IllegalArgumentException("Customer cannot be null.");
+        }
 
-        writer.write(
-            customer.customerID + "," +
-            customer.firstName + "," +
-            customer.lastName + "," +
-            customer.SSN + "," +
-            customer.DOB + "," +
-            customer.email + "," +
-            customer.phoneNumber + "," +
-            customer.BankLocation + "," +
-            customer.bankPhoneNumber + "," +
-            customer.SavingsAccount + "," +
-            customer.CheckingAccount + "," +
-            customer.CreditCard + "," +
-            customer.creditCardLimit + "," +
-            customer.creditScore + "," +
-            customer.hasDebitCard + "," +
-            customer.cdBalance + "," +
-            customer.cdInterestRate + "\n"
-        );
+        // Ensure file exists before writing
+        initializeCSV();
 
-        writer.close();
+        try (FileWriter writer = new FileWriter(FILE_NAME, true)) {
+
+            writer.write(
+                escape(customer.getCustomerID()) + "," +
+                escape(customer.getFirstName()) + "," +
+                escape(customer.getLastName()) + "," +
+                escape(customer.getSSN()) + "," +
+                escape(customer.getDOB()) + "," +
+                escape(customer.getEmail()) + "," +
+                escape(customer.getPhoneNumber()) + "," +
+                escape(customer.getBankLocation()) + "," +
+                escape(customer.getBankPhoneNumber()) + "," +
+                escape(String.valueOf(customer.getSavingsAccount())) + "," +
+                escape(String.valueOf(customer.getCheckingAccount())) + "," +
+                escape(String.valueOf(customer.getCreditCard())) + "," +
+                escape(String.valueOf(customer.getCreditCardLimit())) + "," +
+                escape(String.valueOf(customer.getCreditScore())) + "," +
+                escape(String.valueOf(customer.hasDebitCard())) + "," +
+                escape(String.valueOf(customer.getCdBalance())) + "," +
+                escape(String.valueOf(customer.getCdInterestRate())) + "\n"
+            );
+
+        }
+
+    }
+
+    /**
+     * Escape CSV values to handle commas and quotes.
+     */
+    private static String escape(String value) {
+
+        if (value == null) {
+            return "";
+        }
+
+        String escaped = value.replace("\"", "\"\"");
+
+        return "\"" + escaped + "\"";
     }
 }
