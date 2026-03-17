@@ -1,5 +1,6 @@
 import java.io.FileWriter;
 import java.io.IOException; //In case of file errors//
+import java.util.ArrayList;
 
 public class CustodialWriter {
     private final String csvFile = "custodialAccounts.csv";
