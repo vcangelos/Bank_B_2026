@@ -19,7 +19,6 @@ import java.time.Duration; //we need duration to subtract both times to see how 
 public class SavingsAccount {
    /*** Variables ***/
    private double savingsbalance; // TODO this is our savings balance which will start in a range if the customer first creates their account in about 100-300 $                                  
-   private double overDraftFee = 35; // TODO it'll start with 35$
    private double minBalanceFee = 15; // minimum balance fee is 15 dollars.
    private double monthlyFee = 12; // TODO monthly fee is 12 dollars.
    private double yearlyFee = 48; // TODO 48 dollars.
@@ -128,7 +127,7 @@ public class SavingsAccount {
    public static SavingsAccount OpenSavingsAccount(String userid) throws IOException{
     if(userIDExists(userid))
     {
-        System.out.println("You're logged in");
+        
 
         try(BufferedReader readlines = Files.newBufferedReader(csvPath)){
             readlines.readLine();
@@ -146,6 +145,7 @@ public class SavingsAccount {
                 
             }
         }
+        System.out.println("You're logged in");
     }
     else
     {
@@ -260,7 +260,7 @@ public class SavingsAccount {
                 Path tempfile = Files.createTempFile("csv_temp", ".csv");   //(time limit is 24 hours)temporary csv file to rewrite the original to get rid of already paid the fewer people who had been forced to pay fee
                     String data;
                     
-
+                    try(BufferedReader readcsvfee = Files.newBufferedReader(csvPathFee); BufferedWriter writetempcsv = Files.newBufferedWriter(tempfile)){
                     while((data = readcsvfee.readLine()) !=null){
                        String[] currentdata = data.split(",");
                        if(currentdata != null && currentdata[0].trim().equals(SavingsID)){ //currentdata equals SavingsID or else don't run it.
@@ -304,7 +304,7 @@ public class SavingsAccount {
                 String data;
                 while((data = readcsvfee.readLine()) != null){ //Read CSV DATA
                     String[] currentdata = data.split(",");
-                    if(currentdata[0].trim().equals(SavingsID) && currentdata[3].trim().equals(true){ //make currentdata current line in the CSV formated something like this SavingsID,date,timeThen,savings,hasPaid,Daylight equal to userID so we can see if that account
+                    if(currentdata[0].trim().equals(SavingsID) && currentdata[3].trim().equals("true")){ //make currentdata current line in the CSV formated something like this SavingsID,date,timeThen,savings,hasPaid,Daylight equal to userID so we can see if that account
                         LocalDateTime csvtime = LocalDateTime.parse(currentdata[1]); //parse date time in column 2
                         ZonedDateTime previous_time = csvtime.atZone(EASTERN_ZONE); // use csvtime to change it to easternZone
                         long hours = Duration.between(previous_time.toInstant(), now).toHours(); //compare previous tiem and now(current time).
@@ -321,11 +321,6 @@ public class SavingsAccount {
         }
         }
     return 0.00;
-    }
-    //Under here is TODO.
-    public double overDraftFee() { //OVERDRAFT FEE I need to research into this more.
-
-    return 0.0;
     }
     public double monthlyFee()
     {
