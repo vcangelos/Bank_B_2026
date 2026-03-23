@@ -115,8 +115,8 @@ public class SavingsAccount {
             String line;
             while((line = read.readLine()) != null){
                 String[] datacur = line.split(",");
-                if(datacur[1].trim().equals(UserID)){
-                    writetemp.write(UserID + ","+ SavingsId +","+ newbalance);
+                if(datacur[0].trim().equals(UserID)){
+                    writetemp.write(UserID + ","+ SavingsId +","+ String.format("%.2f", newbalance));
                     update = true;
                 }
                 else{
@@ -125,6 +125,7 @@ public class SavingsAccount {
                 writetemp.newLine();
             }
         }
+        Files.move(temp, csvPath, StandardCopyOption.REPLACE_EXISTING);
    }
 
    public static SavingsAccount createSavingsAccount(String userid, double savingsamount) throws IOException {//
@@ -323,7 +324,7 @@ public double minBalanceFee() throws IOException { //Min month goal is to write 
                 // Retrieve previous CSV data safely
                 String lastMinMonth = data.length > 1 ? data[1] : "";
                 String lastMonthlyMonth = data.length > 2 ? data[2] : "";
-                double CurrentBalance = data.length > 3 ? Double.parseDouble(data[3]) : savingsbalance;
+                double currentBalance = data.length > 3 ? Double.parseDouble(data[3]) : savingsbalance;
                 String lastYear = data.length > 4 ? data[4] : "";
                 String lastInterest = data.length > 5 ? data[5] : "";
 
@@ -334,10 +335,10 @@ public double minBalanceFee() throws IOException { //Min month goal is to write 
                         writeSavingsCSV(userid, SavingsID, savingsbalance);
                     }
                     lastMinMonth = currentMonth;
-                    CurrentBalance = savingsbalance;
+                    currentBalance = savingsbalance;
                 } else {
                     //update current balance
-                        CurrentBalance = savingsbalance;
+                        currentBalance = savingsbalance;
                     
                 }
 
@@ -346,7 +347,7 @@ public double minBalanceFee() throws IOException { //Min month goal is to write 
                         SavingsID,
                         lastMinMonth != null ? lastMinMonth : "",
                         lastMonthlyMonth != null ? lastMonthlyMonth : "",
-                        String.valueOf(CurrentBalance),
+                        String.format("%.2f",currentBalance),
                         lastYear != null ? lastYear : "",
                         lastInterest != null ? lastInterest : ""
                 ));
@@ -365,7 +366,7 @@ public double minBalanceFee() throws IOException { //Min month goal is to write 
                     SavingsID,
                     currentMonth,
                     "",
-                    String.valueOf(savingsbalance),
+                    String.format("%.2f",savingsbalance),
                     "",
                     ""
             ));
@@ -397,7 +398,7 @@ public double monthlyFee() throws IOException {
                 //load in csv data for other values.
                 String lastMinMonth = data.length > 1 ? data[1] : "";
                 String lastMonthlyMonth = data.length > 2 ? data[2] : "";
-                double lowestBalance = data.length > 3 ? Double.parseDouble(data[3]) : savingsbalance;
+                double currentBalance = data.length > 3 ? Double.parseDouble(data[3]) : savingsbalance;
                 String lastYear = data.length > 4 ? data[4] : "";
                 String lastInterest = data.length > 5 ? data[5] : "";
 
@@ -412,7 +413,7 @@ public double monthlyFee() throws IOException {
                         SavingsID,
                         lastMinMonth != null ? lastMinMonth : "",
                         lastMonthlyMonth,
-                        String.valueOf(lowestBalance),
+                        String.format("%.2f",currentBalance),
                         lastYear != null ? lastYear : "",
                         lastInterest != null ? lastInterest : ""
                 ));
@@ -430,7 +431,7 @@ public double monthlyFee() throws IOException {
                     SavingsID,
                     "",
                     currentMonth,
-                    String.valueOf(savingsbalance),
+                    String.format("%.2f",savingsbalance),
                     "",
                     ""
             ));
@@ -475,7 +476,7 @@ public double yearlyFee() throws IOException { //every year passing the user get
                         SavingsID,
                         lastMinMonth != null ? lastMinMonth : "",
                         lastMonthlyMonth != null ? lastMonthlyMonth : "",
-                        String.valueOf(currentBalance),
+                        String.format("%.2f",currentBalance),
                         lastYear,
                         lastInterest != null ? lastInterest : ""
                 ));
@@ -492,7 +493,7 @@ public double yearlyFee() throws IOException { //every year passing the user get
                     SavingsID,
                     "",
                     "",
-                    String.valueOf(savingsbalance),
+                    String.format("%.2f",savingsbalance),
                     currentYear,
                     ""
             ));
@@ -528,11 +529,12 @@ public double applyInterest() throws IOException { //apply interest over months
                 String lastInterest = data.length > 5 ? data[5] : "";
 
                 //Interest is applied via month and savings is written to savings csv so it can be written overtime
-                if (!lastInterest.isEmpty() || !lastInterest.equals(currentMonth)) {
+                if (!lastInterest.isEmpty() && !lastInterest.equals(currentMonth)) {
                     double monthlyRate = interestamount / 12.0; //interest amount.
                     savingsbalance += savingsbalance * monthlyRate;
                     currentBalance = savingsbalance;
-                    writeSavingsCSV(userid, SavingsID, savingsbalance);
+                    System.out.println("p");
+                    writeSavingsCSV(userid, SavingsID, currentBalance);
                 }
                 lastInterest = currentMonth;
 
@@ -558,7 +560,7 @@ public double applyInterest() throws IOException { //apply interest over months
                     SavingsID,
                     "",
                     "",
-                    String.valueOf(savingsbalance),
+                    String.format("%.2f",savingsbalance),
                     "",
                     currentMonth
             ));
