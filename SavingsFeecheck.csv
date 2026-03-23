@@ -1,1 +1,2 @@
-SavingsID,timeThen,savings,minbalancefee,Overdraft,Daylight188307042427,2026-03-15T21:25:47,80.0,false,false,true
+SavingsID,lastMinFeeMonth,lastMonthlyFeeMonth,CurrentBalanceMonth,lastYearlyFeeYear,lastInterest
+188307042427,2026-03,2026-03,80.33,2026,2026-03

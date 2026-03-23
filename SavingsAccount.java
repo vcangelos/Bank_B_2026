@@ -3,17 +3,22 @@
 //this is used for the random generator.
 
 import java.util.Random; //Random is used for the random ID generator  
+
+
 import java.io.BufferedWriter; //This helps us write data to the CSV file.
 import java.io.IOException; //catch errors if anything silly happens.
 import java.nio.file.Files; //to make it easier to access the files read and write functions. Our HasSavings is a static so we need static methods to make the code work. Files work hand to hand with path objects instead of using Strings we could use that which makes it platform independent.
 import java.util.ArrayList; //Array list is needed when we don't know the size of an array or when we resize an array if you see SavingsIDexists I used array list to capture all the columns and use it to compare with the current savings ID with the savings ID in the current array list. Something like this psuedocode currentsavingsID = currentarraylistsavings.
+import java.util.List;
 import java.nio.file.Path; //This function is used to find the file you want for example I'm using this to find my Savings.csv
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption; //we don't want to overwrite when we create a savings ID account we want to append.
 import java.io.BufferedReader; //is used to read line by line
 import java.time.ZoneId; //Ids such as "America/New York"
 import java.time.ZonedDateTime; //the time for that local area.
 import java.time.LocalTime; // just local time and not date.
 import java.time.Instant; //global time this is very useful for local conversions.
+import java.time.LocalDate;
 import java.time.LocalDateTime; //convert to localdatetime for example New york eastern time.
 import java.time.Duration; //we need duration to subtract both times to see how many hours it is if it is over or equal to 24 hours then send out a fee otherwise don't
 public class SavingsAccount {
@@ -25,11 +30,11 @@ public class SavingsAccount {
    //private static csvFile file; // csvFile equals to the path of the CSV file.
    //private static csvFile FeeCheck; // savingsFee will equal to CSVpathFee
    private String userid; // current userID lets say they registered or they were recent the constructor we'll need userID as a verification method
-   private String employeeid;
    private String SavingsID;
-   private boolean hasemployee;
-   private boolean hasuser;
-   /*SavingsFeeCheck variables */
+   private double interestamount = 0.05;
+
+   /*transaction data*/
+   private final List<String> transactionHistory = new ArrayList<>();
 
    /* Static Final variables */
    private static final Path csvPath = Path.of("Savings.csv"); // fine the path for the CSV file
@@ -99,13 +104,36 @@ public class SavingsAccount {
    }
    return false; // not found
    }
+
+   //write to csv
+
+   public static void writeSavingsCSV(String UserID, String SavingsId, double newbalance) throws IOException //make a automatic writing system.
+   {
+        Path temp = Files.createTempFile("temp", ".csv");
+        try(BufferedReader read = Files.newBufferedReader(csvPath); BufferedWriter writetemp = Files.newBufferedWriter(temp)){
+            boolean update = false;
+            String line;
+            while((line = read.readLine()) != null){
+                String[] datacur = line.split(",");
+                if(datacur[1].trim().equals(UserID)){
+                    writetemp.write(UserID + ","+ SavingsId +","+ newbalance);
+                    update = true;
+                }
+                else{
+                    writetemp.write(line);
+                }
+                writetemp.newLine();
+            }
+        }
+   }
+
    public static SavingsAccount createSavingsAccount(String userid, double savingsamount) throws IOException {//
        if (userIDExists(userid)) { // NEW WORKS I need to make employee CSV
            throw new IllegalArgumentException("The User Already has a Savings Account.");
        } else {
            // else(hasEmployee()){}
            String SavingsID = RandomIDGenerator();
-           SavingsAccount account;
+           SavingsAccount account = null; //added null so nothing bad can happen such as unitialization.
            if (savingsamount == 100) {
                account = new SavingsAccount();
                account.userid = userid;
@@ -118,7 +146,7 @@ public class SavingsAccount {
                throw new IllegalArgumentException("The Saivngs amount has to be in the range of 100-300");
            }
            try (BufferedWriter bw = Files.newBufferedWriter(csvPath, StandardOpenOption.APPEND)) {
-               bw.write(userid + "," + SavingsID + "," + savingsamount);
+               bw.write(userid + "," + SavingsID + "," + account.savingsbalance);
                bw.newLine(); // make a new line when written.
            }
            return account;
@@ -213,123 +241,335 @@ public class SavingsAccount {
        return SavingsID;
    }
    // ************Withdraw system**************/
-   public double withdrawSavings(double amt, String choice) // withdraw system that records the amount.
+   public boolean withdrawSavings(double amt) // withdraw system that records the amount.
    {
-       switch (choice) // This is going to change the intent for this is if the user picks "Checking"
-                       // then subtract savings from the amt that was placed and the checking account
-                       // managers add that amt value otherwise if "Savings" we'll add the value from
-                       // amt and the checking account people would just subtract on their part.
-       {
-           case "Checking": // "Checking" means that you're choosing to withdraw savings to checking
-               if (amt > 0 && savingsbalance >= amt) {//
-                   savingsbalance -= amt;
-               } else {
-                   System.out.println("Incorrect amount must be less than savings AND greater than 0");
-               }
-               break;
-           case "Savings": // CHECKING to Savings would simply add amt with savings.
-               if (amt > 0) {
-                   savingsbalance += amt;
-               }
-               break;
-           default:
-               System.out.println("Invalid choose either Checking or Savings");
-               break;
-       }
-       return savingsbalance;
+    if(amt <= 0 )
+    {
+        System.out.println("Account can't be less than or equal to 0, so please choose a higher value.");
+        return false;
+    }
+    if(amt <= savingsbalance)
+    {
+        savingsbalance -= amt;
+        return true;
+    }
+    else{
+        System.out.println("Insufficient funds.");
+        return false;
+    }
+
    }
-   // FEES
-   public double minBalanceFee() throws IOException { // Minbalancefee has 2 main checks to see if it is less than 100$ or more than 100$ to be capable of paying it.
-       if (savingsbalance < 100) { //checks if balance is less than 100 to see if savingsID exists or not 
-           Instant now = Instant.now(); //use currenttime meaning what time it is to whomever is reading this code.
-           ZonedDateTime eastern = now.atZone(EASTERN_ZONE);
-           boolean isDaylight = EASTERN_ZONE.getRules().isDaylightSavings(eastern.toInstant());
-           boolean hasPaidminfee = false;                                                                    
-           if(!SavingsIDExistsfeefile(getSavingsID())) {
+   public boolean transferToChecking(double amt, BankingCSV.Account checking) {
+        if (amt <= 0) {
+            System.out.println("Amount must be > 0.");
+            return false;
+        }
+        if (amt > savingsbalance) {
+            System.out.printf("Insufficient funds in savings %s to transfer $%.2f%n", userid, amt);
+            return false;
+        }
+        savingsbalance -= amt;
+        checking.balance += amt;
+        checking.addTransaction("Transfer In from Savings", amt);
+        System.out.printf("Transferred $%.2f from savings to checkings%n", amt);
+        System.out.printf("Savings balance: $%.2f | Checking balance: $%.2f%n", savingsbalance, checking.balance);
+        return true;
+    }
 
-               // RECORD TIME if there isn't anything written when they started. -Younes Ziani
-               try (BufferedWriter bw = Files.newBufferedWriter(csvPathFee, StandardOpenOption.APPEND)) {
-                   bw.write(this.SavingsID +  "," + eastern.withNano(0).toLocalDateTime() + "," + savingsbalance + "," + hasPaidminfee + "," + false + "," + isDaylight); //            
-                   bw.newLine(); // make a new line when written.
-               }
-               catch (IOException e) {
-                    e.printStackTrace(); // print the error.
-               }
-           }
-           else{
-                Path tempfile = Files.createTempFile("csv_temp", ".csv");   //(time limit is 24 hours)temporary csv file to rewrite the original to get rid of already paid the fewer people who had been forced to pay fee
-                    String data;
-                    
-                    try(BufferedReader readcsvfee = Files.newBufferedReader(csvPathFee); BufferedWriter writetempcsv = Files.newBufferedWriter(tempfile)){
-                    while((data = readcsvfee.readLine()) !=null){
-                       String[] currentdata = data.split(",");
-                       if(currentdata != null && currentdata[0].trim().equals(SavingsID)){ //currentdata equals SavingsID or else don't run it.
-                           LocalDateTime csvtime = LocalDateTime.parse(currentdata[1]);
-                           ZonedDateTime previous_time = csvtime.atZone(EASTERN_ZONE);
-                           long hours = Duration.between(previous_time.toInstant(), now).toHours();
-                           
-                           if(hours >= 24){
-                           this.savingsbalance -= minBalanceFee;
-                           continue;
-                           }
-                        }   
-                        writetempcsv.write(data);
-                        writetempcsv.newLine();
-                   }
-                   Files.move(tempfile, csvPathFee, java.nio.file.StandardCopyOption.REPLACE_EXISTING); //replace the CSV file with TEMP.
-                }
-                catch(IOException io){
-                    io.printStackTrace();
-                }
-               
-            }
-           
-       }        
-       else{
-           Instant now = Instant.now();
-           ZonedDateTime eastern = now.atZone(EASTERN_ZONE);
-           //boolean isDaylight = EASTERN_ZONE.getRules().isDaylightSavings(eastern.toInstant());  UNUSED
-           Path tempfile = Files.createTempFile("csv_temp", ".csv");
-           
-           if(SavingsIDExistsfeefile(getSavingsID())) {
-            try(BufferedReader readcsvfee = Files.newBufferedReader(csvPathFee); BufferedWriter writecsvfee = Files.newBufferedWriter(tempfile)){
-                String header = readcsvfee.readLine();
-                if(header != null)
-                {
-                    writecsvfee.write(header);
-                    writecsvfee.newLine();
-                }
 
-                
-                String data;
-                while((data = readcsvfee.readLine()) != null){ //Read CSV DATA
-                    String[] currentdata = data.split(",");
-                    if(currentdata[0].trim().equals(SavingsID) && currentdata[3].trim().equals("true")){ //make currentdata current line in the CSV formated something like this SavingsID,date,timeThen,savings,hasPaid,Daylight equal to userID so we can see if that account
-                        LocalDateTime csvtime = LocalDateTime.parse(currentdata[1]); //parse date time in column 2
-                        ZonedDateTime previous_time = csvtime.atZone(EASTERN_ZONE); // use csvtime to change it to easternZone
-                        long hours = Duration.between(previous_time.toInstant(), now).toHours(); //compare previous tiem and now(current time).
-                        if(hours >= 24){ //hours greater than 24 add a minbalancefee to savings.
-                        this.savingsbalance -= minBalanceFee;
-                        }
-                        continue;
+    //record transaction and then print history of transaction if needed.
+    private void recordTransaction(String type, double amount) {
+    String record = type + "," + amount + "," + LocalDateTime.now() + "," + savingsbalance;
+    transactionHistory.add(record);
+}
+
+public void printTransactionHistory() {
+    System.out.println("Transaction History for " + this.userid + ":");
+    for(String tx : transactionHistory) {
+        System.out.println(tx);
+    }
+    }
+
+
+
+    public void updateFees() throws IOException{
+        minBalanceFee();
+        yearlyFee();
+        monthlyFee();
+        applyInterest();
+    }
+// ************ FEES AND INTEREST METHODS ************
+// This is the framework for all the fees such as monthly fee, minimum balance fee, and yearly fee.
+// They'll be used in one method called updateFees
+// SavingsID, LastMinMonth, LastMonthlyMonth, LowestBalance, LastYear, LastInterest
+
+public double minBalanceFee() throws IOException { //Min month goal is to write in the csv a starting month for example "2026-03" if todays month is 2026-04 it'll check the lowest balance currently in
+    LocalDate today = LocalDate.now();
+    String currentMonth = today.getYear() + "-" + String.format("%02d", today.getMonthValue());
+
+    Path temp = Files.createTempFile("temp", ".csv");
+    boolean found = false;
+
+    try (BufferedReader reader = Files.newBufferedReader(csvPathFee);
+         BufferedWriter writer = Files.newBufferedWriter(temp)) {
+
+        String line;
+        while ((line = reader.readLine()) != null) {
+            String[] data = line.split(",");
+
+            if (data[0].equals(SavingsID)) {
+                found = true;
+
+                // Retrieve previous CSV data safely
+                String lastMinMonth = data.length > 1 ? data[1] : "";
+                String lastMonthlyMonth = data.length > 2 ? data[2] : "";
+                double CurrentBalance = data.length > 3 ? Double.parseDouble(data[3]) : savingsbalance;
+                String lastYear = data.length > 4 ? data[4] : "";
+                String lastInterest = data.length > 5 ? data[5] : "";
+
+                //check if anything isn't null and check if lastminmonth isn't empty and make lastminmonth not equal to current month otherwise skip this.
+                if (lastMinMonth != null && !lastMinMonth.isEmpty() && !lastMinMonth.equals(currentMonth)) {
+                    if (savingsbalance < minimumbalance) {
+                        savingsbalance -= minBalanceFee;
+                        writeSavingsCSV(userid, SavingsID, savingsbalance);
                     }
-                    writecsvfee.write(data); //write data except if the user paid or evaded fee.
-                    writecsvfee.newLine();
+                    lastMinMonth = currentMonth;
+                    CurrentBalance = savingsbalance;
+                } else {
+                    //update current balance
+                        CurrentBalance = savingsbalance;
+                    
                 }
-                Files.move(tempfile, csvPathFee, java.nio.file.StandardCopyOption.REPLACE_EXISTING); //replace the CSV file with TEMP.
+
+                //write updated line
+                writer.write(String.join(",",
+                        SavingsID,
+                        lastMinMonth != null ? lastMinMonth : "",
+                        lastMonthlyMonth != null ? lastMonthlyMonth : "",
+                        String.valueOf(CurrentBalance),
+                        lastYear != null ? lastYear : "",
+                        lastInterest != null ? lastInterest : ""
+                ));
+                writer.newLine();
+                continue;
             }
+
+            //write the otherlines
+            writer.write(line);
+            writer.newLine();
         }
+
+        //if nothing was found.
+        if (!found) {
+            writer.write(String.join(",",
+                    SavingsID,
+                    currentMonth,
+                    "",
+                    String.valueOf(savingsbalance),
+                    "",
+                    ""
+            ));
+            writer.newLine();
         }
-    return 0.00;
     }
-    public double monthlyFee()
-    {
-    return 0.0;
+
+    //replace old CSV with updated temp file.
+    Files.move(temp, csvPathFee, StandardCopyOption.REPLACE_EXISTING);
+    return savingsbalance;
+}
+
+public double monthlyFee() throws IOException { 
+    LocalDate today = LocalDate.now();
+    String currentMonth = today.getYear() + "-" + String.format("%02d", today.getMonthValue());
+
+    Path tempfile = Files.createTempFile("csv_temp", ".csv");
+    boolean found = false;
+
+    try (BufferedReader reader = Files.newBufferedReader(csvPathFee);
+         BufferedWriter writer = Files.newBufferedWriter(tempfile)) {
+
+        String line;
+        while ((line = reader.readLine()) != null) {
+            String[] data = line.split(",");
+            if (data[0].trim().equals(SavingsID)) {
+                found = true;
+
+                //load in csv data for other values.
+                String lastMinMonth = data.length > 1 ? data[1] : "";
+                String lastMonthlyMonth = data.length > 2 ? data[2] : "";
+                double lowestBalance = data.length > 3 ? Double.parseDouble(data[3]) : savingsbalance;
+                String lastYear = data.length > 4 ? data[4] : "";
+                String lastInterest = data.length > 5 ? data[5] : "";
+
+                // Apply monthly fee if a month has passed
+                if (!lastMonthlyMonth.isEmpty() && !currentMonth.equals(lastMonthlyMonth)) {
+                    savingsbalance -= monthlyFee;
+                    writeSavingsCSV(userid, SavingsID, savingsbalance);
+                }
+                lastMonthlyMonth = currentMonth;
+
+                writer.write(String.join(",", //rewrite all data such as last min month and so on.
+                        SavingsID,
+                        lastMinMonth != null ? lastMinMonth : "",
+                        lastMonthlyMonth,
+                        String.valueOf(lowestBalance),
+                        lastYear != null ? lastYear : "",
+                        lastInterest != null ? lastInterest : ""
+                ));
+                writer.newLine();
+                continue;
+            }
+
+            writer.write(line);
+            writer.newLine();
+        }
+
+        // First time entry
+        if (!found) {
+            writer.write(String.join(",",
+                    SavingsID,
+                    "",
+                    currentMonth,
+                    String.valueOf(savingsbalance),
+                    "",
+                    ""
+            ));
+            writer.newLine();
+        }
     }
-    public double yearlyFee()
-    {
-    return 0.0;
+
+    Files.move(tempfile, csvPathFee, StandardCopyOption.REPLACE_EXISTING);
+    return savingsbalance;
+}
+
+public double yearlyFee() throws IOException { //every year passing the user gets a fee.
+    String currentYear = String.valueOf(LocalDate.now().getYear());
+
+    Path temp = Files.createTempFile("temp", ".csv");
+    boolean found = false;
+
+    try (BufferedReader reader = Files.newBufferedReader(csvPathFee);
+         BufferedWriter writer = Files.newBufferedWriter(temp)) {
+
+        String line;
+        while ((line = reader.readLine()) != null) {
+            String[] data = line.split(",");
+
+            if (data[0].equals(SavingsID)) {
+                found = true;
+
+                String lastMinMonth = data.length > 1 ? data[1] : "";
+                String lastMonthlyMonth = data.length > 2 ? data[2] : "";
+                double currentBalance = data.length > 3 ? Double.parseDouble(data[3]) : savingsbalance;
+                String lastYear = data.length > 4 ? data[4] : "";
+                String lastInterest = data.length > 5 ? data[5] : "";
+
+                // Apply yearly fee if year has changed
+                if (!lastYear.isEmpty() && !lastYear.equals(currentYear)) {
+                    savingsbalance -= yearlyFee;
+                    writeSavingsCSV(userid, SavingsID, savingsbalance);
+                }
+                lastYear = currentYear;
+
+                writer.write(String.join(",",
+                        SavingsID,
+                        lastMinMonth != null ? lastMinMonth : "",
+                        lastMonthlyMonth != null ? lastMonthlyMonth : "",
+                        String.valueOf(currentBalance),
+                        lastYear,
+                        lastInterest != null ? lastInterest : ""
+                ));
+                writer.newLine();
+                continue;
+            }
+
+            writer.write(line);
+            writer.newLine();
+        }
+
+        if (!found) {
+            writer.write(String.join(",",
+                    SavingsID,
+                    "",
+                    "",
+                    String.valueOf(savingsbalance),
+                    currentYear,
+                    ""
+            ));
+            writer.newLine();
+        }
     }
+
+    Files.move(temp, csvPathFee, StandardCopyOption.REPLACE_EXISTING);
+    return savingsbalance;
+}
+
+public double applyInterest() throws IOException { //apply interest over months
+    LocalDate today = LocalDate.now(); //grab todays date so we can compare it with last month
+    String currentMonth = today.getYear() + "-" + String.format("%02d", today.getMonthValue());
+
+    Path temp = Files.createTempFile("temp", ".csv");
+    boolean found = false; //boolean logic so we can either create or update an existing data such as interest balance
+
+    try (BufferedReader reader = Files.newBufferedReader(csvPathFee);
+         BufferedWriter writer = Files.newBufferedWriter(temp)) {
+
+        String line;
+        while ((line = reader.readLine()) != null) {
+            String[] data = line.split(",");
+
+            if (data[0].equals(SavingsID)) {
+                found = true;
+
+                String lastMinMonth = data.length > 1 ? data[1] : ""; 
+                String lastMonthlyMonth = data.length > 2 ? data[2] : "";
+                double currentBalance = data.length > 3 ? Double.parseDouble(data[3]) : savingsbalance;
+                String lastYear = data.length > 4 ? data[4] : "";
+                String lastInterest = data.length > 5 ? data[5] : "";
+
+                //Interest is applied via month and savings is written to savings csv so it can be written overtime
+                if (!lastInterest.isEmpty() || !lastInterest.equals(currentMonth)) {
+                    double monthlyRate = interestamount / 12.0; //interest amount.
+                    savingsbalance += savingsbalance * monthlyRate;
+                    currentBalance = savingsbalance;
+                    writeSavingsCSV(userid, SavingsID, savingsbalance);
+                }
+                lastInterest = currentMonth;
+
+                writer.write(String.join(",",
+                        SavingsID,
+                        lastMinMonth != null ? lastMinMonth : "",
+                        lastMonthlyMonth != null ? lastMonthlyMonth : "",
+                        String.format("%.2f",currentBalance),
+                        lastYear != null ? lastYear : "",
+                        lastInterest
+                ));
+                writer.newLine();
+                continue;
+            }
+
+            writer.write(line);
+            writer.newLine();
+        }
+
+        // First time entry
+        if (!found) {
+            writer.write(String.join(",",
+                    SavingsID,
+                    "",
+                    "",
+                    String.valueOf(savingsbalance),
+                    "",
+                    currentMonth
+            ));
+            writer.newLine();
+        }
+    }
+
+    Files.move(temp, csvPathFee, StandardCopyOption.REPLACE_EXISTING);
+    return savingsbalance;
+}
+
        
 }
 
