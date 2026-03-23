@@ -30,8 +30,9 @@ public class SavingsAccount {
    //private static csvFile file; // csvFile equals to the path of the CSV file.
    //private static csvFile FeeCheck; // savingsFee will equal to CSVpathFee
    private String userid; // current userID lets say they registered or they were recent the constructor we'll need userID as a verification method
-   private String SavingsID;
-   private double interestamount = 0.05;
+   private String SavingsID; //savings ID is a unique verification method to see if the user has a savings account or not.
+   private double interestamount = 0.05; //interest is 5% 
+   private boolean HasSavings;
 
    /*transaction data*/
    private final List<String> transactionHistory = new ArrayList<>();
@@ -127,6 +128,26 @@ public class SavingsAccount {
         }
         Files.move(temp, csvPath, StandardCopyOption.REPLACE_EXISTING);
    }
+      public static void writeCustomerinfo(boolean HasSavings) throws IOException //make a automatic writing system.
+   {
+        Path temp = Files.createTempFile("temp", ".csv");
+        try(BufferedReader read = Files.newBufferedReader(csvPath); BufferedWriter writetemp = Files.newBufferedWriter(temp)){
+            boolean update = false;
+            String line;
+            while((line = read.readLine()) != null){
+                String[] datacur = line.split(",");
+                if(datacur[0].trim().equals(UserID)){
+                    writetemp.write(UserID + ","+ SavingsId +","+ String.format("%.2f", newbalance));
+                    update = true;
+                }
+                else{
+                    writetemp.write(line);
+                }
+                writetemp.newLine();
+            }
+        }
+        Files.move(temp, csvPath, StandardCopyOption.REPLACE_EXISTING);
+   }
 
    public static SavingsAccount createSavingsAccount(String userid, double savingsamount) throws IOException {//
        if (userIDExists(userid)) { // NEW WORKS I need to make employee CSV
@@ -139,9 +160,11 @@ public class SavingsAccount {
                account = new SavingsAccount();
                account.userid = userid;
                account.setSavingsID(SavingsID);
+              account.HasSavings = true;
            } else if (savingsamount <= maximumbalance && savingsamount > minimumbalance) {
                account = new SavingsAccount(userid, savingsamount);
                account.setSavingsID(SavingsID);
+              account.HasSavings = true;
            }
            else {
                throw new IllegalArgumentException("The Saivngs amount has to be in the range of 100-300");
