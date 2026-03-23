@@ -22,52 +22,55 @@ public class CustomerRepository {
                     "bankPhoneNumber,savingsAccount,checkingAccount,creditCard,creditCardLimit," +
                     "creditScore,hasDebitCard,cdBalance,cdInterestRate\n"
                 );
-
             }
-
         }
     }
 
     /**
      * Save a customer directly to CSV.
      */
-    public static void saveCustomerToCSV(Customer customer) throws IOException {
+    public static void saveCustomerToCSV(Customer customer) {
 
         if (customer == null) {
             throw new IllegalArgumentException("Customer cannot be null.");
         }
 
-        // Ensure file exists before writing
-        initializeCSV();
+        try {
+            // Ensure file exists
+            initializeCSV();
 
-        try (FileWriter writer = new FileWriter(FILE_NAME, true)) {
+            try (FileWriter writer = new FileWriter(FILE_NAME, true)) {
 
-            writer.write(
-                escape(customer.getCustomerID()) + "," +
-                escape(customer.getFirstName()) + "," +
-                escape(customer.getLastName()) + "," +
-                escape(customer.getSSN()) + "," +
-                escape(customer.getDOB()) + "," +
-                escape(customer.getEmail()) + "," +
-                escape(customer.getPhoneNumber()) + "," +
-                escape(customer.getBankLocation()) + "," +
-                escape(customer.getBankPhoneNumber()) + "," +
-                escape(String.valueOf(customer.getSavingsAccount())) + "," +
-                escape(String.valueOf(customer.getCheckingAccount())) + "," +
-                escape(String.valueOf(customer.getCreditCard())) + "," +
-                escape(String.valueOf(customer.getCreditCardLimit())) + "," +
-                escape(String.valueOf(customer.getCreditScore())) + "," +
-                escape(String.valueOf(customer.hasDebitCard())) + "," +
-                escape(String.valueOf(customer.getCdBalance())) + "," +
-                escape(String.valueOf(customer.getCdInterestRate())) + "\n"
-            );
+                String line =
+                    escape(customer.getCustomerID()) + "," +
+                    escape(customer.getFirstName()) + "," +
+                    escape(customer.getLastName()) + "," +
+                    escape(customer.getSSN()) + "," +
+                    escape(customer.getDOB()) + "," +
+                    escape(customer.getEmail()) + "," +
+                    escape(customer.getPhoneNumber()) + "," +
+                    escape(customer.getBankLocation()) + "," +
+                    escape(customer.getBankPhoneNumber()) + "," +
+                    escape(String.valueOf(customer.getSavingsAccount())) + "," +
+                    escape(String.valueOf(customer.getCheckingAccount())) + "," +
+                    escape(String.valueOf(customer.getCreditCard())) + "," +
+                    escape(String.valueOf(customer.getCreditCardLimit())) + "," +
+                    escape(String.valueOf(customer.getCreditScore())) + "," +
+                    escape(String.valueOf(customer.hasDebitCard())) + "," +
+                    escape(String.valueOf(customer.getCdBalance())) + "," +
+                    escape(String.valueOf(customer.getCdInterestRate())) + "\n";
 
+                writer.write(line);
+            }
+
+        } catch (IOException e) {
+            System.out.println("Error saving customer to CSV: " + e.getMessage());
+            e.printStackTrace();
         }
-
     }
 
     /**
-     * Escape CSV values to handle commas and quotes.
+     * Escape CSV values to handle commas, quotes, and line breaks.
      */
     private static String escape(String value) {
 
@@ -75,7 +78,10 @@ public class CustomerRepository {
             return "";
         }
 
-        String escaped = value.replace("\"", "\"\"");
+        String escaped = value
+            .replace("\"", "\"\"")   // escape quotes
+            .replace("\n", " ")      // remove new lines
+            .replace("\r", " ");     // remove carriage returns
 
         return "\"" + escaped + "\"";
     }
