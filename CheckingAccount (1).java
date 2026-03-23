@@ -1,8 +1,9 @@
 import java.time.*;
 import java.time.format.*;
 import java.util.*;
+import java.util.InputMismatchException;
 import java.time.temporal.ChronoUnit;
-import java.io.*; 
+import java.io.*;
 
 
 public class BankingCSV {
@@ -205,6 +206,7 @@ public class BankingCSV {
                     if (!acc.isActive) { System.out.println("Account " + accountID + " is inactive and cannot process withdrawals."); return; }
                     if (amount <= acc.balance) {
                         acc.balance -= amount;
+                        acc.addTransaction("Withdrawal", amount);
                         acc.updateFlags();
                         System.out.printf("Withdrew $%.2f from %s. New balance: $%.2f%n", amount, accountID, acc.balance);
                     } else {
@@ -351,16 +353,22 @@ public class BankingCSV {
         try (PrintWriter pw = new PrintWriter(new FileWriter(filepath))) {
             pw.println(String.join(",", headers));
             for (User user : users) {
-                for (Account acc : user.accounts) {
-                    String negDate  = acc.wentNegativeDate != null ? acc.wentNegativeDate.toString() : "";
-                    String warnedAt = acc.minBalWarnedAt   != null ? acc.minBalWarnedAt.format(DT_FMT) : "";
-                    pw.printf("%s,%s,%s,%.2f,%b,%b,%b,%s,%s%n",
-                        user.userID, user.name, acc.accountID, acc.balance,
-                        user.hasOverdraftProtection,
-                        acc.belowMinBalance,
-                        acc.isActive,
-                        negDate,
-                        warnedAt);
+                if (user.accounts.isEmpty()) {
+                    // Placeholder row so readCSV can still load the user record
+                    pw.printf("%s,%s,NO_ACCOUNT,0.00,false,false,true,,%n",
+                        user.userID, user.name);
+                } else {
+                    for (Account acc : user.accounts) {
+                        String negDate  = acc.wentNegativeDate != null ? acc.wentNegativeDate.toString() : "";
+                        String warnedAt = acc.minBalWarnedAt   != null ? acc.minBalWarnedAt.format(DT_FMT) : "";
+                        pw.printf("%s,%s,%s,%.2f,%b,%b,%b,%s,%s%n",
+                            user.userID, user.name, acc.accountID, acc.balance,
+                            user.hasOverdraftProtection,
+                            acc.belowMinBalance,
+                            acc.isActive,
+                            negDate,
+                            warnedAt);
+                    }
                 }
             }
         }
@@ -389,7 +397,10 @@ public class BankingCSV {
                 userMap.putIfAbsent(userID, new User(userID, name));
                 User user = userMap.get(userID);
                 user.hasOverdraftProtection = hasOverdraft;
-                user.addAccount(new Account(accountID, balance, belowMin, isActive, negDate, warnedAt));
+                // Skip placeholder rows written for account-less users
+                if (!accountID.equals("NO_ACCOUNT")) {
+                    user.addAccount(new Account(accountID, balance, belowMin, isActive, negDate, warnedAt));
+                }
             }
         }
         return new ArrayList<>(userMap.values());
@@ -402,15 +413,16 @@ public class BankingCSV {
 
     // --- Savings CSV Methods ---
 
-    static String[] savingsHeaders = {"User ID", "Full Name", "Savings Account ID", "Balance"};
+    // Columns match Savings.csv: userid, SavingsID, Savings
+    static String[] savingsHeaders = {"userid", "SavingsID", "Savings"};
 
     public static void writeSavingsCSV(String filepath, List<User> users) throws IOException {
         try (PrintWriter pw = new PrintWriter(new FileWriter(filepath))) {
             pw.println(String.join(",", savingsHeaders));
             for (User user : users) {
                 if (user.savingsAccount != null) {
-                    pw.printf("%s,%s,%s,%.2f%n",
-                        user.userID, user.name,
+                    pw.printf("%s,%s,%.1f%n",
+                        user.userID,
                         user.savingsAccount.accountID,
                         user.savingsAccount.balance);
                 }
@@ -421,13 +433,13 @@ public class BankingCSV {
 
     public static void readSavingsCSV(String filepath, List<User> users) throws IOException {
         try (BufferedReader br = new BufferedReader(new FileReader(filepath))) {
-            br.readLine();
+            br.readLine(); // skip header: userid,SavingsID,Savings
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts   = line.split(",");
-                String userID    = parts[0];
-                String accountID = parts[2];
-                double balance   = Double.parseDouble(parts[3]);
+                String userID    = parts[0];   // userid
+                String accountID = parts[1];   // SavingsID
+                double balance   = Double.parseDouble(parts[2]); // Savings
                 User user = findUser(users, userID);
                 if (user != null) user.savingsAccount = new SavingsAccount(accountID, userID, balance);
             }
@@ -436,132 +448,248 @@ public class BankingCSV {
 
     // --- Main ---
 
+    // Returns the account ID the user selected or just created, or null if blocked
+    public static String handleUserEntry(Scanner scanner, User user, List<User> loadedUsers, String checkingPath) throws IOException {
+
+        // Filter to only active accounts
+        List<Account> activeAccounts = new ArrayList<>();
+        for (Account acc : user.accounts) {
+            if (acc.isActive) activeAccounts.add(acc);
+        }
+
+        // No accounts at all — create one
+        if (user.accounts.isEmpty()) {
+            System.out.println("No checking account found for User ID " + user.userID + ". Creating new account.");
+            return createNewCheckingAccount(scanner, user, loadedUsers, checkingPath);
+        }
+
+        // All accounts deactivated — block access
+        if (activeAccounts.isEmpty()) {
+            System.out.println("----------------------------------------------");
+            System.out.println("  ACCESS DENIED: All accounts for User ID");
+            System.out.printf ("  %s are currently deactivated.%n", user.userID);
+            System.out.println("  Please contact support for assistance.");
+            System.out.println("----------------------------------------------");
+            return null;
+        }
+
+        // Warn about any deactivated accounts
+        for (Account acc : user.accounts) {
+            if (!acc.isActive)
+                System.out.printf("[WARNING] Account %s is deactivated and cannot be used.%n", acc.accountID);
+        }
+
+        // Exactly one active account — go straight in
+        if (activeAccounts.size() == 1) {
+            System.out.printf("Logged into account %s (Balance: $%.2f)%n",
+                activeAccounts.get(0).accountID, activeAccounts.get(0).balance);
+            return activeAccounts.get(0).accountID;
+        }
+
+        // Multiple active accounts — ask which one to use
+        System.out.println("\nYou have multiple checking accounts. Which would you like to access?");
+        for (int i = 0; i < activeAccounts.size(); i++) {
+            System.out.printf("  %d. %s  ($%.2f)%n", i + 1,
+                activeAccounts.get(i).accountID, activeAccounts.get(i).balance);
+        }
+        System.out.printf("  %d. Open a new checking account%n", activeAccounts.size() + 1);
+        System.out.print("Enter your choice: ");
+
+        int choice;
+        try { choice = scanner.nextInt(); }
+        catch (InputMismatchException e) { scanner.next(); System.out.println("Invalid input, defaulting to first account."); return activeAccounts.get(0).accountID; }
+
+        if (choice == activeAccounts.size() + 1) {
+            return createNewCheckingAccount(scanner, user, loadedUsers, checkingPath);
+        } else if (choice >= 1 && choice <= activeAccounts.size()) {
+            String selected = activeAccounts.get(choice - 1).accountID;
+            System.out.printf("Logged into account %s%n", selected);
+            return selected;
+        } else {
+            System.out.println("Invalid choice, defaulting to first account.");
+            return activeAccounts.get(0).accountID;
+        }
+    }
+
+    // Creates a new checking account for the user, saves to CSV, and returns the new account ID
+    public static String createNewCheckingAccount(Scanner scanner, User user, List<User> loadedUsers, String checkingPath) throws IOException {
+        System.out.print("Initial deposit amount: $");
+        double initialDeposit = 0;
+        try { initialDeposit = scanner.nextDouble(); }
+        catch (InputMismatchException e) { scanner.next(); System.out.println("Invalid amount, starting with $0.00."); }
+
+        if (initialDeposit < 0) { System.out.println("Deposit cannot be negative. Starting with $0.00."); initialDeposit = 0; }
+
+        System.out.print("Would you like overdraft protection? (yes/no): ");
+        String odInput = scanner.next().trim().toLowerCase();
+        boolean overdraft = odInput.equals("yes") || odInput.equals("y");
+
+        String newID = generateID(loadedUsers);
+        Account newAccount = new Account(newID, initialDeposit);
+        user.addAccount(newAccount);
+        user.hasOverdraftProtection = overdraft;
+
+        if (initialDeposit > 0) newAccount.addTransaction("Initial Deposit", initialDeposit);
+
+        writeCSV(checkingPath, loadedUsers);
+        System.out.printf("New checking account created: %s (Balance: $%.2f) | Overdraft Protection: %s%n",
+            newID, initialDeposit, overdraft ? "Enabled" : "Disabled");
+        return newID;
+    }
+
     public static void main(String[] args) throws IOException {
-        Scanner scanner = new Scanner(System.in);
+    Scanner scanner = new Scanner(System.in);
 
-        List<User> users = new ArrayList<>();
+    // --- Seed users ---
+    List<User> users = new ArrayList<>();
 
-        User alice = new User("1001", "Alice Johnson");
-        alice.addAccount(new Account("415631219101", 4250.75));
-        alice.addAccount(new Account("498891668177", 1800.00));
-        alice.addAccount(new Account("431246013015",  620.50));
+    User alice = new User("1001",  "Alice Johnson");
+    alice.addAccount(new Account("415631219101",  4250.75));
+    alice.addAccount(new Account("498891668177",  1800.00));
+    alice.addAccount(new Account("431246013015",   620.50));
 
-        User bob = new User("1002", "Bob Martinez");
-        bob.addAccount(new Account("418138552030", 3100.00));
-        bob.addAccount(new Account("416048021673", 5500.00));
+    User bob = new User("1002",  "Bob Martinez");
+    bob.addAccount(new Account("418138552030",  3100.00));
+    bob.addAccount(new Account("416048021673",  5500.00));
 
-        User carol = new User("1003", "Carol Smith");
-        carol.addAccount(new Account("476846326096",  980.25));
-        carol.addAccount(new Account("477682810754", 2200.00));
-        carol.addAccount(new Account("406107107737",  750.00));
-        carol.addAccount(new Account("408717912686", 8400.00));
+    User carol = new User("1003",  "Carol Smith");
+    carol.addAccount(new Account("476846326096",   980.25));
+    carol.addAccount(new Account("477682810754",  2200.00));
+    carol.addAccount(new Account("406107107737",   750.00));
+    carol.addAccount(new Account("408717912686",  8400.00));
 
-        User david = new User("1004", "David Lee");
-        david.addAccount(new Account("431003814027", 1500.00));
+    // David has no checking accounts — will be prompted to create one on first login
+    // User ID matches Savings.csv so his savings account loads automatically
+    User david = new User("29399",  "David Lee");
 
-        users.add(alice); users.add(bob); users.add(carol); users.add(david);
+    users.add(alice); users.add(bob); users.add(carol); users.add(david);
 
-        String checkingPath = "banking_accounts.csv";
-        String savingsPath  = "banking_savings.csv";
-        writeCSV(checkingPath, users);
-        List<User> loadedUsers = readCSV(checkingPath);
+    String checkingPath = "banking_accounts.csv";
+    String savingsPath  = "Savings.csv";
+    writeCSV(checkingPath,  users);
+    List<User> loadedUsers = readCSV(checkingPath);
 
-        findUser(loadedUsers, "1001").savingsAccount = new SavingsAccount("SAV001", "1001", 3200.00);
-        findUser(loadedUsers, "1002").savingsAccount = new SavingsAccount("SAV002", "1002", 8750.50);
-        findUser(loadedUsers, "1003").savingsAccount = new SavingsAccount("SAV003", "1003",  500.00);
-        findUser(loadedUsers, "1004").savingsAccount = new SavingsAccount("SAV004", "1004", 1100.00);
+    // Load savings accounts directly from Savings.csv — no hard-coded assignments
+    try {
+        readSavingsCSV(savingsPath,  loadedUsers);
+    } catch (FileNotFoundException e) {
+        System.out.println("Savings.csv not found. No savings accounts will be loaded.");
+        System.out.println("Savings accounts will be created when users add them.");
+    }
 
-        writeSavingsCSV(savingsPath, loadedUsers);
-        readSavingsCSV(savingsPath, loadedUsers);
+    // On startup:  apply any fees whose 24-hour grace period already expired
+    System.out.println("\n--- Checking for expired minimum-balance warnings on startup ---");
+    for (User u :  loadedUsers) u.applyExpiredMinBalanceFees();
 
-        // On startup: apply any fees whose 24-hour grace period already expired
-        System.out.println("\n--- Checking for expired minimum-balance warnings on startup ---");
-        for (User u : loadedUsers) u.applyExpiredMinBalanceFees();
+    // --- Entry Loop ---
+    boolean running = true;
+    while (running) {
+        System.out.println("\n=============================");
+        System.out.println("   Welcome to the Bank");
+        System.out.println("=============================");
+        System.out.print("Enter your User ID (or 'exit' to quit):  ");
+        String inputID = scanner.next().trim();
 
-        System.out.println("\n--- Adding New User: Eve Turner ---");
-        User eve = new User("1005", "Eve Turner");
-        eve.addAccount(new Account(generateID(loadedUsers), 2000.00));
-        loadedUsers.add(eve);
-        eve.addAccount(new Account(generateID(loadedUsers), 500.00));
-        findUser(loadedUsers, "1005").printAccounts();
+        if (inputID.equalsIgnoreCase("exit")) {
+            System.out.println("Thank you for visiting. Goodbye!");
+            break;
+        }
 
-        User user = findUser(loadedUsers, "1001");
-        String selectedAccount = user.accounts.get(0).accountID;
-        user.hasOverdraftProtection = true;
+        User user = findUser(loadedUsers,  inputID);
+        if (user == null) {
+            System.out.println("User ID not found. Please try again.");
+            continue;
+        }
 
-        System.out.println("\nWelcome " + user.name + "!");
-        System.out.println("Menu Options");
-        System.out.println("1. Deposit");
-        System.out.println("2. Withdraw");
-        System.out.println("3. Transfer between accounts");
-        System.out.println("4. View transaction history");
-        System.out.println("5. Show balances");
-        System.out.println("6. Exit");
+        String selectedAccount = handleUserEntry(scanner,  user,  loadedUsers,  checkingPath);
+        if (selectedAccount == null) continue;
 
-        boolean on = true;
-        while (on) {
-            System.out.print("\nPlease enter your selection: ");
-            int select = scanner.nextInt();
+        System.out.println("\nWelcome,  " + user.name + "!");
+
+        // --- Transaction Menu ---
+        boolean loggedIn = true;
+        while (loggedIn) {
+            System.out.println("\nMenu Options");
+            System.out.println("1. Deposit");
+            System.out.println("2. Withdraw");
+            System.out.println("3. Transfer between accounts");
+            System.out.println("4. View transaction history");
+            System.out.println("5. Show balances");
+            System.out.println("6. Logout");
+
+            System.out.print("\nPlease enter your selection:  ");
+            int select;
+            try { select = scanner.nextInt(); }
+            catch (InputMismatchException e) { scanner.next(); System.out.println("Invalid input. Please enter a number 1-6."); continue; }
 
             if (select == 1) {
-                System.out.print("Please enter the amount you want to deposit: ");
+                System.out.print("Please enter the amount you want to deposit:  ");
                 double deposit = scanner.nextDouble();
                 if (deposit <= 0) { System.out.println("Please enter an amount greater than 0."); }
-                else { user.deposit(selectedAccount, deposit); System.out.println("$" + deposit + " was successfully deposited."); writeCSV(checkingPath, loadedUsers); }
+                else { user.deposit(selectedAccount,  deposit); System.out.println("$" + deposit + " was successfully deposited."); writeCSV(checkingPath,  loadedUsers); }
 
             } else if (select == 2) {
-                System.out.print("Please enter the amount you want to withdraw: ");
+                System.out.print("Please enter the amount you want to withdraw:  ");
                 double withdraw = scanner.nextDouble();
                 if (withdraw <= 0) { System.out.println("Amount must be > 0"); }
-                else { user.withdraw(selectedAccount, withdraw); writeCSV(checkingPath, loadedUsers); }
+                else { user.withdraw(selectedAccount,  withdraw); writeCSV(checkingPath,  loadedUsers); }
 
             } else if (select == 3) {
-                System.out.println("Transfer type:");
+                System.out.println("Transfer type: ");
                 System.out.println("  1. Checking \u2192 Checking");
                 System.out.println("  2. Checking \u2192 Savings");
-                System.out.print("Enter transfer type: ");
+                System.out.print("Enter transfer type:  ");
                 int transferType = scanner.nextInt();
 
                 if (transferType == 1) {
                     if (user.accounts.size() < 2) { System.out.println("You need at least 2 checking accounts to transfer between them."); }
                     else {
-                        System.out.println("Your checking accounts:");
+                        System.out.println("Your checking accounts: ");
                         for (int i = 0; i < user.accounts.size(); i++)
-                            System.out.printf("  %d. %s ($%.2f) [%s]%n", i + 1,
-                                user.accounts.get(i).accountID, user.accounts.get(i).balance,
-                                user.accounts.get(i).isActive ? "Active" : "Inactive");
-                        System.out.print("Enter source account ID: ");      String fromID = scanner.next();
-                        System.out.print("Enter destination account ID: "); String toID   = scanner.next();
-                        System.out.print("Enter amount to transfer: ");     double transferAmt = scanner.nextDouble();
+                            System.out.printf("  %d. %s ($%.2f) [%s]%n",  i + 1, 
+                                user.accounts.get(i).accountID,  user.accounts.get(i).balance, 
+                                user.accounts.get(i).isActive ? "Active" :  "Inactive");
+                        System.out.print("Enter source account ID:  ");      String fromID = scanner.next();
+                        System.out.print("Enter destination account ID:  "); String toID   = scanner.next();
+                        System.out.print("Enter amount to transfer:  ");     double transferAmt = scanner.nextDouble();
                         if (transferAmt <= 0) { System.out.println("Amount must be > 0"); }
-                        else { user.transfer(fromID, toID, transferAmt); writeCSV(checkingPath, loadedUsers); }
+                        else { user.transfer(fromID,  toID,  transferAmt); writeCSV(checkingPath,  loadedUsers); }
                     }
 
                 } else if (transferType == 2) {
                     if (user.savingsAccount == null) { System.out.println("No savings account linked to your profile."); }
                     else {
-                        System.out.println("Your checking accounts:");
+                        System.out.println("Your checking accounts: ");
                         for (int i = 0; i < user.accounts.size(); i++)
-                            System.out.printf("  %d. %s ($%.2f) [%s]%n", i + 1,
-                                user.accounts.get(i).accountID, user.accounts.get(i).balance,
-                                user.accounts.get(i).isActive ? "Active" : "Inactive");
-                        System.out.printf("Your savings account: %s ($%.2f)%n",
-                            user.savingsAccount.accountID, user.savingsAccount.balance);
-                        System.out.print("Enter source checking account ID: "); String fromID = scanner.next();
-                        System.out.print("Enter amount to transfer: ");         double transferAmt = scanner.nextDouble();
+                            System.out.printf("  %d. %s ($%.2f) [%s]%n",  i + 1, 
+                                user.accounts.get(i).accountID,  user.accounts.get(i).balance, 
+                                user.accounts.get(i).isActive ? "Active" :  "Inactive");
+                        System.out.printf("Your savings account:  %s ($%.2f)%n", 
+                            user.savingsAccount.accountID,  user.savingsAccount.balance);
+                        System.out.print("Enter source checking account ID:  "); String fromID = scanner.next();
+                        System.out.print("Enter amount to transfer:  ");         double transferAmt = scanner.nextDouble();
                         if (transferAmt <= 0) { System.out.println("Amount must be > 0"); }
-                        else { user.transferToSavings(fromID, transferAmt); writeCSV(checkingPath, loadedUsers); writeSavingsCSV(savingsPath, loadedUsers); }
+                        else { user.transferToSavings(fromID,  transferAmt); writeCSV(checkingPath,  loadedUsers); writeSavingsCSV(savingsPath,  loadedUsers); }
                     }
                 } else { System.out.println("Invalid transfer type. Please enter 1 or 2."); }
 
-            } else if (select == 4) { user.accounts.get(0).printTransactionHistory();
+            } else if (select == 4) {
+                // Find and print history for the selected account
+                for (Account acc :  user.accounts) {
+                    if (acc.accountID.equals(selectedAccount)) { acc.printTransactionHistory(); break; }
+                }
             } else if (select == 5) { System.out.println("\n--- Your Accounts ---"); user.printAccounts();
-            } else if (select == 6) { System.out.println("Goodbye!"); on = false;
+            } else if (select == 6) {
+                System.out.println("Logged out successfully. Returning to main menu.");
+                writeCSV(checkingPath,  loadedUsers);
+                writeSavingsCSV(savingsPath,  loadedUsers);
+                loggedIn = false;
             } else { System.out.println("Invalid selection. Please choose 1-6."); }
         }
-
-        writeCSV(checkingPath, loadedUsers);
-        writeSavingsCSV(savingsPath, loadedUsers);
-        scanner.close();
     }
+
+    writeCSV(checkingPath,  loadedUsers);
+    writeSavingsCSV(savingsPath,  loadedUsers);
+    scanner.close();
+}
 }
