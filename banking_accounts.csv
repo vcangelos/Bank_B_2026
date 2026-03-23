@@ -1,0 +1,11 @@
+User ID,Full Name,Account ID,Balance,Has Overdraft Protection,Below Min Balance,Is Active,Went Negative Date,Min Bal Warned At
+1001,Alice Johnson,415631219101,4050.75,false,false,true,,
+1001,Alice Johnson,498891668177,1800.00,false,false,true,,
+1001,Alice Johnson,431246013015,620.50,false,false,true,,
+1002,Bob Martinez,418138552030,3100.00,false,false,true,,
+1002,Bob Martinez,416048021673,5500.00,false,false,true,,
+1003,Carol Smith,476846326096,980.25,false,false,true,,
+1003,Carol Smith,477682810754,2200.00,false,false,true,,
+1003,Carol Smith,406107107737,750.00,false,false,true,,
+1003,Carol Smith,408717912686,8400.00,false,false,true,,
+29399,David Lee,NO_ACCOUNT,0.00,false,false,true,,
