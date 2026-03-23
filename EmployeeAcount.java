@@ -1,168 +1,267 @@
-// Import List so we can store multiple banking users
-// List is part of java.util and represents a dynamic collection of objects
-import java.util.List;
+// EmployeeAccount.java
 
-// This class represents an employee and links them to their banking systems
+import java.util.*;
+import java.nio.file.*;
+import java.io.*;
+
+/**
+ * Represents an employee who has a bank account with this bank.
+ * Links together: BankingCSV (checking), DebitCard, CreditCard, SavingsAccount.
+ *
+ * FIXES:
+ * - Removed all csvFile references — replaced with plain Java file I/O
+ * - Reads/writes employeecards.csv to persist card numbers across runs
+ * - Loads or creates a SavingsAccount and records it in EmployeeSavings.csv
+ * - Updates customerInfo.csv EmployeeAccount column (index 14) when created
+ */
 public class EmployeeAccount {
 
-    // Stores the employee's ID
-    // We use String instead of int because IDs may contain leading zeros
     private String employeeID;
-
-    // Stores the employee's name
     private String name;
 
-    // -----------------------------
-    // Linked systems
-    // -----------------------------
-
-    // This represents the banking user stored in the BankingCSV system
-    // BankingCSV.User is likely an inner class inside BankingCSV
     private BankingCSV.User bankingUser;
-
-    // Each employee has a debit card connected to one of their bank accounts
     private DebitCard debitCard;
-
-    // Each employee may also have a credit card
     private CreditCard creditCard;
+    private SavingsAccount savingsAccount;
 
+    private static final Path CARDS_CSV          = Path.of("employeecards.csv");
+    private static final Path EMPLOYEE_SAV_CSV   = Path.of("EmployeeSavings.csv");
+    private static final Path CUSTOMER_INFO_CSV  = Path.of("customerInfo.csv");
 
-    // -----------------------------
+    // -------------------------------------------------
     // Constructor
-    // -----------------------------
-    // A constructor initializes a new EmployeeAccount object
+    // -------------------------------------------------
 
     public EmployeeAccount(String employeeID, String name, List<BankingCSV.User> existingUsers) {
 
-        // Save employee information
         this.employeeID = employeeID;
         this.name = name;
 
-        // -----------------------------
-        // LINK BANKING USER
-        // -----------------------------
-
-        // Try to find an existing banking user that matches this employee ID
-        // This prevents creating duplicate banking accounts
+        // STEP 1: Find or create BankingCSV user (checking account)
         this.bankingUser = BankingCSV.findUser(existingUsers, employeeID);
-
-        // If no user exists with this employeeID
         if (this.bankingUser == null) {
-
-            // Create a new banking user
-            // This connects the employee to the banking system
             this.bankingUser = new BankingCSV.User(employeeID, name);
-
-            // Add the new user to the list of banking users
             existingUsers.add(this.bankingUser);
         }
-
-
-        // -----------------------------
-        // LINK DEBIT CARD
-        // -----------------------------
-
-        // Create a debit card for this employee
-
-        this.debitCard = new DebitCard(
-
-                // Generate a random card number
-                DebitCard.generateCardNumber(),
-
-                // Default PIN (for testing/demo purposes)
-                "1234",
-
-                // Link the debit card to the employee ID
-                employeeID,
-
-                // Determine which bank account the card is attached to
-                // If the employee has no accounts yet, assign a placeholder
-                this.bankingUser.accounts.isEmpty()
-
-                        ? "NEW_ACCOUNT" // if no accounts exist
-
-                        : this.bankingUser.accounts.get(0).accountID // otherwise use the first account
-        );
-
-        // Provide the DebitCard class access to the banking users list
-        // This allows debit cards to locate accounts and update balances
         DebitCard.setBankingUsers(existingUsers);
 
+        // STEP 2: Load or generate DebitCard
+        String existingDebitNumber = loadDebitCardNumber(employeeID);
+        String linkedAccountID = this.bankingUser.accounts.isEmpty()
+                ? "NEW_ACCOUNT"
+                : this.bankingUser.accounts.get(0).accountID;
 
-        // -----------------------------
-        // LINK CREDIT CARD
-        // -----------------------------
+        if (existingDebitNumber != null) {
+            // Reuse saved card number
+            this.debitCard = new DebitCard(existingDebitNumber, "1234", employeeID, linkedAccountID);
+        } else {
+            // Generate new card and save it
+            String newDebitNumber = DebitCard.generateCardNumber();
+            this.debitCard = new DebitCard(newDebitNumber, "1234", employeeID, linkedAccountID);
+            saveCardToCSV(employeeID, newDebitNumber);
+        }
 
-        // Create a credit card for the employee
-        // Credit cards are independent from checking/savings accounts
+        // STEP 3: Create CreditCard
         this.creditCard = new CreditCard();
+
+        // STEP 4: Load or create SavingsAccount
+        this.savingsAccount = loadOrCreateSavings(employeeID);
+
+        // STEP 5: Mark EmployeeAccount column in customerInfo.csv
+        updateCustomerInfoCSV(employeeID, true);
     }
 
+    // -------------------------------------------------
+    // Load existing debit card number from employeecards.csv
+    // -------------------------------------------------
 
-    // -----------------------------
-    // Accessor Methods (Getters)
-    // -----------------------------
+    private String loadDebitCardNumber(String employeeID) {
+        if (!Files.exists(CARDS_CSV)) return null;
 
-    // Getter for employee ID
-    public String getEmployeeID() {
-        return employeeID;
+        try (BufferedReader br = Files.newBufferedReader(CARDS_CSV)) {
+            String headerLine = br.readLine();
+            if (headerLine == null) return null;
+
+            String[] headers = headerLine.split(",", -1);
+            int idIdx = -1, debitIdx = -1;
+            for (int i = 0; i < headers.length; i++) {
+                if (headers[i].trim().equals("employeeID"))       idIdx    = i;
+                if (headers[i].trim().equals("debitCardNumber"))  debitIdx = i;
+            }
+            if (idIdx == -1 || debitIdx == -1) return null;
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+                String[] fields = line.split(",", -1);
+                if (fields.length > idIdx && fields[idIdx].trim().equals(employeeID)) {
+                    return fields.length > debitIdx ? fields[debitIdx].trim() : null;
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Warning: Could not read employeecards.csv: " + e.getMessage());
+        }
+        return null;
     }
 
-    // Getter for employee name
-    public String getName() {
-        return name;
+    // -------------------------------------------------
+    // Save new debit card number to employeecards.csv
+    // -------------------------------------------------
+
+    private void saveCardToCSV(String employeeID, String debitNumber) {
+        try {
+            boolean fileExists = Files.exists(CARDS_CSV);
+
+            if (!fileExists) {
+                // Create file with header first
+                try (BufferedWriter bw = Files.newBufferedWriter(CARDS_CSV, StandardOpenOption.CREATE)) {
+                    bw.write("employeeID,creditCardNumber,debitCardNumber");
+                    bw.newLine();
+                }
+            }
+
+            // Append the new row
+            try (BufferedWriter bw = Files.newBufferedWriter(CARDS_CSV, StandardOpenOption.APPEND)) {
+                bw.write(employeeID + ",," + debitNumber);
+                bw.newLine();
+            }
+
+        } catch (IOException e) {
+            System.out.println("Warning: Could not write to employeecards.csv: " + e.getMessage());
+        }
     }
 
-    // Returns the linked banking user object
-    public BankingCSV.User getBankingUser() {
-        return bankingUser;
+    // -------------------------------------------------
+    // Load or create SavingsAccount, record in EmployeeSavings.csv
+    // -------------------------------------------------
+
+    private SavingsAccount loadOrCreateSavings(String employeeID) {
+        try {
+            if (SavingsAccount.userIDExists(employeeID)) {
+                // Employee already has savings — open it
+                return SavingsAccount.OpenSavingsAccount(employeeID);
+            } else {
+                // Create a new savings account with default $100 balance
+                SavingsAccount newAcc = SavingsAccount.createSavingsAccount(employeeID, 100);
+                recordEmployeeSavings(employeeID, newAcc.getSavingsID(), newAcc.getSavings());
+                return newAcc;
+            }
+        } catch (IOException e) {
+            System.out.println("Warning: Could not load/create savings account: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            System.out.println("Note: " + e.getMessage());
+        }
+        return null;
     }
 
-    // Returns the employee's debit card
-    public DebitCard getDebitCard() {
-        return debitCard;
+    // -------------------------------------------------
+    // Write to EmployeeSavings.csv
+    // -------------------------------------------------
+
+    private void recordEmployeeSavings(String employeeID, String savingsID, double balance) {
+        try {
+            boolean fileExists = Files.exists(EMPLOYEE_SAV_CSV);
+
+            if (!fileExists) {
+                try (BufferedWriter bw = Files.newBufferedWriter(EMPLOYEE_SAV_CSV, StandardOpenOption.CREATE)) {
+                    bw.write("userid,SavingsID,Savings");
+                    bw.newLine();
+                }
+            }
+
+            // Check if already recorded before appending
+            boolean alreadyThere = false;
+            try (BufferedReader br = Files.newBufferedReader(EMPLOYEE_SAV_CSV)) {
+                br.readLine(); // skip header
+                String line;
+                while ((line = br.readLine()) != null) {
+                    if (line.startsWith(employeeID + ",")) {
+                        alreadyThere = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!alreadyThere) {
+                try (BufferedWriter bw = Files.newBufferedWriter(EMPLOYEE_SAV_CSV, StandardOpenOption.APPEND)) {
+                    bw.write(employeeID + "," + savingsID + "," + String.format("%.1f", balance));
+                    bw.newLine();
+                }
+            }
+
+        } catch (IOException e) {
+            System.out.println("Warning: Could not update EmployeeSavings.csv: " + e.getMessage());
+        }
     }
 
-    // Returns the employee's credit card
-    public CreditCard getCreditCard() {
-        return creditCard;
+    // -------------------------------------------------
+    // Update EmployeeAccount column (index 14) in customerInfo.csv
+    // -------------------------------------------------
+
+    private void updateCustomerInfoCSV(String employeeID, boolean hasAccount) {
+        if (!Files.exists(CUSTOMER_INFO_CSV)) return;
+
+        try {
+            List<String> lines = Files.readAllLines(CUSTOMER_INFO_CSV);
+            if (lines.isEmpty()) return;
+
+            for (int i = 1; i < lines.size(); i++) {
+                String[] fields = lines.get(i).split(",", -1);
+                if (fields.length > 0 && fields[0].trim().equals(employeeID)) {
+                    // Column 14 = EmployeeAccount
+                    if (fields.length > 14) {
+                        fields[14] = hasAccount ? "true" : "false";
+                        lines.set(i, String.join(",", fields));
+                    }
+                    break;
+                }
+            }
+
+            Files.write(CUSTOMER_INFO_CSV, lines,
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+
+        } catch (IOException e) {
+            System.out.println("Warning: Could not update customerInfo.csv: " + e.getMessage());
+        }
     }
 
+    // -------------------------------------------------
+    // Getters
+    // -------------------------------------------------
 
-    // -----------------------------
-    // Convenience Method
-    // -----------------------------
-    // A convenience method is a helper method that simplifies tasks
+    public String getEmployeeID()              { return employeeID; }
+    public String getName()                    { return name; }
+    public BankingCSV.User getBankingUser()    { return bankingUser; }
+    public DebitCard getDebitCard()            { return debitCard; }
+    public CreditCard getCreditCard()          { return creditCard; }
+    public SavingsAccount getSavingsAccount()  { return savingsAccount; }
+
+    // -------------------------------------------------
+    // showAccounts: print full account summary
+    // -------------------------------------------------
 
     public void showAccounts() {
-
-        // Print employee information
+        System.out.println("============================================");
         System.out.println("Employee: " + name + " | ID: " + employeeID);
+        System.out.println("============================================");
 
-        // -----------------------------
-        // Show Checking / Savings Accounts
-        // -----------------------------
-        System.out.println("\n--- Checking & Savings ---");
-
-        // Calls a method inside BankingCSV.User to print account details
+        System.out.println("\n--- Checking Account ---");
         bankingUser.printAccounts();
 
+        System.out.println("\n--- Savings Account ---");
+        if (savingsAccount != null) {
+            System.out.println("Savings ID:      " + savingsAccount.getSavingsID());
+            System.out.printf( "Savings Balance: $%.2f%n", savingsAccount.getSavings());
+        } else {
+            System.out.println("No savings account found.");
+        }
 
-        // -----------------------------
-        // Show Debit Card Info
-        // -----------------------------
         System.out.println("\n--- Debit Card ---");
-
-        // Display the debit card fee schedule
         debitCard.displayFeeSchedule();
 
-
-        // -----------------------------
-        // Show Credit Card Info
-        // -----------------------------
         System.out.println("\n--- Credit Card ---");
-
-        // Display credit card information
         creditCard.display();
+
+        System.out.println("============================================");
     }
 }
