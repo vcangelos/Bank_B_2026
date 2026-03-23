@@ -446,10 +446,77 @@ public class BankingCSV {
         }
     }
 
+    // --- Customer Info CSV ---
+
+    // Reads customerInfo.csv and sets CheckingAccount = true for any user that has
+    // at least one checking account linked to their customerID. Writes the file back
+    // in-place, preserving all other columns exactly as they were.
+    public static void updateCustomerInfoCSV(String customerInfoPath, List<User> users) {
+        File file = new File(customerInfoPath);
+        if (!file.exists()) return; // nothing to update if file isn't present
+
+        List<String> lines = new ArrayList<>();
+        String header = "";
+        int checkingColIndex = -1;
+        int customerIDColIndex = -1;
+
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            header = br.readLine();
+            if (header == null) return;
+
+            // Find column indices from the header
+            String[] cols = header.split(",", -1);
+            for (int i = 0; i < cols.length; i++) {
+                String col = cols[i].trim();
+                if (col.equalsIgnoreCase("CheckingAccount"))  checkingColIndex   = i;
+                if (col.equalsIgnoreCase("customerID"))       customerIDColIndex = i;
+            }
+
+            if (checkingColIndex == -1 || customerIDColIndex == -1) {
+                System.out.println("[CustomerInfo] Required columns not found — skipping update.");
+                return;
+            }
+
+            // Build a set of userIDs that have at least one checking account
+            Set<String> usersWithChecking = new HashSet<>();
+            for (User u : users) {
+                if (!u.accounts.isEmpty()) usersWithChecking.add(u.userID);
+            }
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.isBlank()) { lines.add(line); continue; }
+                String[] parts = line.split(",", -1);
+                if (parts.length > customerIDColIndex) {
+                    String cid = parts[customerIDColIndex].trim();
+                    if (usersWithChecking.contains(cid) && parts.length > checkingColIndex) {
+                        parts[checkingColIndex] = "true";
+                        line = String.join(",", parts);
+                    }
+                }
+                lines.add(line);
+            }
+        } catch (IOException e) {
+            System.out.println("[CustomerInfo] Error reading file: " + e.getMessage());
+            return;
+        }
+
+        // Write updated lines back to the file
+        try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
+            pw.println(header);
+            for (String l : lines) pw.println(l);
+        } catch (IOException e) {
+            System.out.println("[CustomerInfo] Error writing file: " + e.getMessage());
+            return;
+        }
+
+        System.out.println("[CustomerInfo] CheckingAccount column updated in: " + customerInfoPath);
+    }
+
     // --- Main ---
 
     // Returns the account ID the user selected or just created, or null if blocked
-    public static String handleUserEntry(Scanner scanner, User user, List<User> loadedUsers, String checkingPath) throws IOException {
+    public static String handleUserEntry(Scanner scanner, User user, List<User> loadedUsers, String checkingPath, String customerInfoPath) throws IOException {
 
         // Filter to only active accounts
         List<Account> activeAccounts = new ArrayList<>();
@@ -460,7 +527,7 @@ public class BankingCSV {
         // No accounts at all — create one
         if (user.accounts.isEmpty()) {
             System.out.println("No checking account found for User ID " + user.userID + ". Creating new account.");
-            return createNewCheckingAccount(scanner, user, loadedUsers, checkingPath);
+            return createNewCheckingAccount(scanner, user, loadedUsers, checkingPath, customerInfoPath);
         }
 
         // All accounts deactivated — block access
@@ -500,7 +567,7 @@ public class BankingCSV {
         catch (InputMismatchException e) { scanner.next(); System.out.println("Invalid input, defaulting to first account."); return activeAccounts.get(0).accountID; }
 
         if (choice == activeAccounts.size() + 1) {
-            return createNewCheckingAccount(scanner, user, loadedUsers, checkingPath);
+            return createNewCheckingAccount(scanner, user, loadedUsers, checkingPath, customerInfoPath);
         } else if (choice >= 1 && choice <= activeAccounts.size()) {
             String selected = activeAccounts.get(choice - 1).accountID;
             System.out.printf("Logged into account %s%n", selected);
@@ -512,7 +579,7 @@ public class BankingCSV {
     }
 
     // Creates a new checking account for the user, saves to CSV, and returns the new account ID
-    public static String createNewCheckingAccount(Scanner scanner, User user, List<User> loadedUsers, String checkingPath) throws IOException {
+    public static String createNewCheckingAccount(Scanner scanner, User user, List<User> loadedUsers, String checkingPath, String customerInfoPath) throws IOException {
         System.out.print("Initial deposit amount: $");
         double initialDeposit = 0;
         try { initialDeposit = scanner.nextDouble(); }
@@ -532,6 +599,7 @@ public class BankingCSV {
         if (initialDeposit > 0) newAccount.addTransaction("Initial Deposit", initialDeposit);
 
         writeCSV(checkingPath, loadedUsers);
+        updateCustomerInfoCSV(customerInfoPath, loadedUsers);
         System.out.printf("New checking account created: %s (Balance: $%.2f) | Overdraft Protection: %s%n",
             newID, initialDeposit, overdraft ? "Enabled" : "Disabled");
         return newID;
@@ -546,7 +614,7 @@ public class BankingCSV {
     User alice = new User("1001",  "Alice Johnson");
     alice.addAccount(new Account("415631219101",  4250.75));
     alice.addAccount(new Account("498891668177",  1800.00));
-    alice.addAccount(new Account("431246013015",   620.50));
+    alice.addAccount(new Account("431246013015",    620.50));
 
     User bob = new User("1002",  "Bob Martinez");
     bob.addAccount(new Account("418138552030",  3100.00));
@@ -564,8 +632,9 @@ public class BankingCSV {
 
     users.add(alice); users.add(bob); users.add(carol); users.add(david);
 
-    String checkingPath = "banking_accounts.csv";
-    String savingsPath  = "Savings.csv";
+    String checkingPath     = "checking_accounts.csv";
+    String savingsPath      = "Savings.csv";
+    String customerInfoPath = "customerInfo.csv";
     writeCSV(checkingPath,  users);
     List<User> loadedUsers = readCSV(checkingPath);
 
@@ -576,6 +645,9 @@ public class BankingCSV {
         System.out.println("Savings.csv not found. No savings accounts will be loaded.");
         System.out.println("Savings accounts will be created when users add them.");
     }
+
+    // On startup: sync CheckingAccount flag for users who already have accounts
+    updateCustomerInfoCSV(customerInfoPath, loadedUsers);
 
     // On startup:  apply any fees whose 24-hour grace period already expired
     System.out.println("\n--- Checking for expired minimum-balance warnings on startup ---");
@@ -601,7 +673,7 @@ public class BankingCSV {
             continue;
         }
 
-        String selectedAccount = handleUserEntry(scanner,  user,  loadedUsers,  checkingPath);
+        String selectedAccount = handleUserEntry(scanner,  user,  loadedUsers,  checkingPath, customerInfoPath);
         if (selectedAccount == null) continue;
 
         System.out.println("\nWelcome,  " + user.name + "!");
