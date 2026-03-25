@@ -45,7 +45,6 @@ public class DebitCard {
         this.lastMaintenanceFeeDate = LocalDate.now();
     }
     
-    // OLD CONSTRUCTOR For backward compatibility with EmployeeAccount
     public DebitCard(String debitCardNumber, String pin, String linkedCustomerId, String linkedAccountId) {
         this(debitCardNumber, "Visa", pin, linkedCustomerId, linkedAccountId);
     }
