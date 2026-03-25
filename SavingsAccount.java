@@ -315,7 +315,7 @@ public class SavingsAccount {
     }
 
    }
-   /*public boolean transferToChecking(double amt, CheckingAccount.Account checking) {
+   public boolean transferToChecking(double amt, List<CheckingAccount.Account> checkings) {
         if (amt <= 0) {
             System.out.println("Amount must be > 0.");
             return false;
@@ -330,7 +330,7 @@ public class SavingsAccount {
         System.out.printf("Transferred $%.2f from savings to checkings%n", amt);
         System.out.printf("Savings balance: $%.2f | Checking balance: $%.2f%n", savingsbalance, checking.balance);
         return true;
-    }*/
+    }
 
 
     //record transaction and then print history of transaction if needed.
