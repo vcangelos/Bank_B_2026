@@ -14,40 +14,38 @@ import java.nio.file.Path; //This function is used to find the file you want for
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption; //we don't want to overwrite when we create a savings ID account we want to append.
 import java.io.BufferedReader; //is used to read line by line
-import java.time.ZoneId; //Ids such as "America/New York"
-import java.time.ZonedDateTime; //the time for that local area.
-import java.time.LocalTime; // just local time and not date.
-import java.time.Instant; //global time this is very useful for local conversions.
+
 import java.time.LocalDate;
 import java.time.LocalDateTime; //convert to localdatetime for example New york eastern time.
-import java.time.Duration; //we need duration to subtract both times to see how many hours it is if it is over or equal to 24 hours then send out a fee otherwise don't
 public class SavingsAccount {
-   /*** Variables ***/
-   private double savingsbalance; // TODO this is our savings balance which will start in a range if the customer first creates their account in about 100-300 $                                  
-   private double minBalanceFee = 15; // minimum balance fee is 15 dollars.
-   private double monthlyFee = 12; // TODO monthly fee is 12 dollars.
-   private double yearlyFee = 48; // TODO 48 dollars.
-   //private static csvFile file; // csvFile equals to the path of the CSV file.
-   //private static csvFile FeeCheck; // savingsFee will equal to CSVpathFee
-   private String userid; // current userID lets say they registered or they were recent the constructor we'll need userID as a verification method
-   private String SavingsID; //savings ID is a unique verification method to see if the user has a savings account or not.
-   private double interestamount = 0.05; //interest is 5% 
-   private boolean HasSavings;
+    /*** Variables ***/
+    private double savingsbalance = 0; // TODO this is our savings balance which will start in a range if the customer first creates their account in about 100-300 $                                  
+    private final double minBalanceFee = 15; // minimum balance fee is 15 dollars.
+    private final double monthlyFee = 12; // TODO monthly fee is 12 dollars.
+    private final double yearlyFee = 48; // TODO 48 dollars.
+    //private static csvFile file; // csvFile equals to the path of the CSV file.
+    //private static csvFile FeeCheck; // savingsFee will equal to CSVpathFee
+    private String userid; // current userID lets say they registered or they were recent the constructor we'll need userID as a verification method
+    private String SavingsID; //savings ID is a unique verification method to see if the user has a savings account or not.
+    private final double interestamount = 0.05; //interest is 5% 
+    private boolean isEmployee = false;
+    private boolean hasSavings;
 
-   /*transaction data*/
-   private final List<String> transactionHistory = new ArrayList<>();
+    /*transaction data*/
+    private final List<String> transactionHistory = new ArrayList<>();
 
-   /* Static Final variables */
-   private static final Path csvPath = Path.of("Savings.csv"); // fine the path for the CSV file
-   private static final Path csvPathFee = Path.of("SavingsFeeCheck.csv"); // measuring 24 hour format.
-   private static final long MAX = 199_999_999_999L; // This is the maximum for the savings number generator.
+    /* Static Final variables */
+    private static final Path csvPath = Path.of("Savings.csv"); // fine the path for the CSV file
+    private static final Path csvPathFee = Path.of("SavingsFeeCheck.csv"); // measuring monthly
+    private static final Path csvCustomerInfo = Path.of("customerinfo.csv");
+
+    private static final long MAX = 199_999_999_999L; // This is the maximum for the savings number generator.
                                                      // //1000000000000 is Savings Account UNIQUE ID this is only for
                                                      // savings.
-   private static final long MIN = 100_000_000_000L; // minimum for the random number generator
-   private static final double minimumbalance = 100;
-   private static final double maximumbalance = 300;
-   private static final ZoneId EASTERN_ZONE = ZoneId.of("America/New_York");
-   private static final LocalTime CUTOFF = LocalTime.of(17, 0); // 5 PM the Bank operates 9-5PM
+    private static final long MIN = 100_000_000_000L; // minimum for the random number generator
+    private static final double minimumbalance = 100;
+    private static final double maximumbalance = 300;
+
    // Instant now = Instant.now(); example of how to use Instance the
    // variable(object) equals to the current time only once meaning time is moving
    // while the variable is only equal to a non incrementing time this is useful
@@ -78,7 +76,7 @@ public class SavingsAccount {
     * CHECK IF THE USER HAS A SAVINGS ACCOUNT THE RETURN FUNCTION WILL BE THE FINAL
     * SIGNAL, use this inside createSavings or existingSavings
     */
-   public static boolean userIDExists(String userid) throws IOException { //hasSavings or user ID
+   public static boolean userIDExists(String userid) throws IOException { //hasSavings or user ID //lets use this as a chance to create a boolean employee.
        try (BufferedReader reader = Files.newBufferedReader(csvPath)) {
            reader.readLine(); //skip the header
            String line; //String line not initialized yet
@@ -112,13 +110,13 @@ public class SavingsAccount {
    {
         Path temp = Files.createTempFile("temp", ".csv");
         try(BufferedReader read = Files.newBufferedReader(csvPath); BufferedWriter writetemp = Files.newBufferedWriter(temp)){
-            boolean update = false;
             String line;
             while((line = read.readLine()) != null){
                 String[] datacur = line.split(",");
                 if(datacur[0].trim().equals(UserID)){
-                    writetemp.write(UserID + ","+ SavingsId +","+ String.format("%.2f", newbalance));
-                    update = true;
+                    
+                    datacur[2] = String.valueOf(newbalance);
+                    writetemp.write(String.join(",", datacur));
                 }
                 else{
                     writetemp.write(line);
@@ -128,30 +126,65 @@ public class SavingsAccount {
         }
         Files.move(temp, csvPath, StandardCopyOption.REPLACE_EXISTING);
    }
-      public static void writeCustomerinfo(boolean HasSavings) throws IOException //make a automatic writing system.
+      public static void writeCustomerinfo(boolean HasSavings, String UserID) throws IOException //make a automatic writing system.
    {
         Path temp = Files.createTempFile("temp", ".csv");
-        try(BufferedReader read = Files.newBufferedReader(csvPath); BufferedWriter writetemp = Files.newBufferedWriter(temp)){
-            boolean update = false;
+        try(BufferedReader read = Files.newBufferedReader(csvCustomerInfo); BufferedWriter writetemp = Files.newBufferedWriter(temp)){
             String line;
+            System.out.println("h");
+            boolean printplease = false;
             while((line = read.readLine()) != null){
-                String[] datacur = line.split(",");
+                String[] datacur = line.split(",", -1);
                 if(datacur[0].trim().equals(UserID)){
-                    writetemp.write(UserID + ","+ SavingsId +","+ String.format("%.2f", newbalance));
-                    update = true;
+                    for(String Value:datacur){
+                    System.out.println(Value + ", ");
+                    }
+                    
+                    printplease = false;
+                    datacur[12] = String.valueOf(HasSavings);
+                    writetemp.write(String.join("," , datacur));
                 }
                 else{
+
                     writetemp.write(line);
                 }
                 writetemp.newLine();
+                if(printplease = true)
+                {
+                    System.out.println("User isn't anywhere in that CSV.");
+                }
             }
         }
-        Files.move(temp, csvPath, StandardCopyOption.REPLACE_EXISTING);
+        Files.move(temp, csvCustomerInfo, StandardCopyOption.REPLACE_EXISTING);
    }
+   public static void ifEmployeee(){
 
+   }
+   public static boolean isValidUserID(String userid){
+    if(userid == null && userid.isEmpty())
+    {
+        return false;
+    }
+    for(char c : userid.toCharArray())
+    {
+
+        if(!Character.isDigit(c))
+        {
+            System.out.println("Not a digit please fix your userID");
+            return false;
+        }
+       
+    }
+    return true;
+   }
    public static SavingsAccount createSavingsAccount(String userid, double savingsamount) throws IOException {//
-       if (userIDExists(userid)) { // NEW WORKS I need to make employee CSV
-           throw new IllegalArgumentException("The User Already has a Savings Account.");
+       if(!isValidUserID(userid))
+       {
+        return null;
+       }
+       if(userIDExists(userid)) { // NEW WORKS I need to make employee CSV
+        System.out.println("There is another user with this UserID");
+        return null;
        } else {
            // else(hasEmployee()){}
            String SavingsID = RandomIDGenerator();
@@ -160,14 +193,17 @@ public class SavingsAccount {
                account = new SavingsAccount();
                account.userid = userid;
                account.setSavingsID(SavingsID);
-              account.HasSavings = true;
+              account.hasSavings = true;
+              writeCustomerinfo(account.hasSavings, account.getUserid());
            } else if (savingsamount <= maximumbalance && savingsamount > minimumbalance) {
                account = new SavingsAccount(userid, savingsamount);
                account.setSavingsID(SavingsID);
-              account.HasSavings = true;
+              account.hasSavings = true;
+              writeCustomerinfo(account.hasSavings, account.getUserid());
            }
            else {
-               throw new IllegalArgumentException("The Saivngs amount has to be in the range of 100-300");
+                System.out.println("The Saivngs amount has to be in the range of 100-300");
+                return null;
            }
            try (BufferedWriter bw = Files.newBufferedWriter(csvPath, StandardOpenOption.APPEND)) {
                bw.write(userid + "," + SavingsID + "," + account.savingsbalance);
@@ -185,7 +221,7 @@ public class SavingsAccount {
             readlines.readLine();
             String currentline;
             while((currentline = readlines.readLine()) != null){
-                String[] currentdata = currentline.split(",");
+                String[] currentdata = currentline.split(",", -1);
                 if(currentdata[0].trim().equals(userid))
                 {
                     SavingsAccount account = new SavingsAccount();
@@ -206,11 +242,7 @@ public class SavingsAccount {
     }
     return null;
    }
-   // public SavingsAccount createEmployeeSavingsAccount() //Main menu will make a
-   // boolean such as
-   //{
-       // TODO.
-   //}
+
    public static String RandomIDGenerator() throws IOException // make the randomIDGenerator a static so it doesn't belong to an object but an standard ID generator for savings ids
    {
        Random rand = new Random(); // rand can generate random numbers
@@ -227,8 +259,8 @@ public class SavingsAccount {
            reader.readLine(); // this line skips the header for example (userid,SavingsID,savings)
            String line;
            while ((line = reader.readLine()) != null) { // as line doesn't equal to NULL (end of file) continue.
-               ArrayList<String> currentdata_to_col = csvParsing.parseLine(line);
-               if (currentdata_to_col.size() > 2 && currentdata_to_col.get(1).equals(SavingsID)) {
+               String[] currentdata_to_col = line.split(",", -1);
+               if (currentdata_to_col.length > 0 && currentdata_to_col[1].equals(SavingsID)) {
                    return true;
                }
            }
@@ -283,7 +315,7 @@ public class SavingsAccount {
     }
 
    }
-   public boolean transferToChecking(double amt, BankingCSV.Account checking) {
+   /*public boolean transferToChecking(double amt, CheckingAccount.Account checking) {
         if (amt <= 0) {
             System.out.println("Amount must be > 0.");
             return false;
@@ -298,7 +330,7 @@ public class SavingsAccount {
         System.out.printf("Transferred $%.2f from savings to checkings%n", amt);
         System.out.printf("Savings balance: $%.2f | Checking balance: $%.2f%n", savingsbalance, checking.balance);
         return true;
-    }
+    }*/
 
 
     //record transaction and then print history of transaction if needed.
