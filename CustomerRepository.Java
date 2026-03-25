@@ -49,6 +49,9 @@ public class CustomerRepository {
                     escape(customer.getDOB()) + "," +
                     escape(customer.getEmail()) + "," +
                     escape(customer.getPhoneNumber()) + "," +
+                    escape(customer.State()) + "," +
+                    escape(customer.City()) + "," +
+                    escape(customer.Zipcode()) + "," +
                     escape(customer.getBankLocation()) + "," +
                     escape(customer.getBankPhoneNumber()) + "," +
                     escape(String.valueOf(customer.getSavingsAccount())) + "," +
