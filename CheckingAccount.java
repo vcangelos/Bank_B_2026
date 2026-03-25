@@ -6,7 +6,7 @@ import java.time.temporal.ChronoUnit;
 import java.io.*;
 
 
-public class BankingCSV {
+public class CheckingAccount {
 
     static class Account {
         String accountID;
