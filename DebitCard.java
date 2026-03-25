@@ -119,9 +119,9 @@ public class DebitCard {
             String[] fields = line.split(",", -1);
             
             if (fields.length > 0 && fields[0].trim().equals(customerId)) {
-                // FIXED: Checking index 18 and writing "yes" or "no"
-                if (fields.length > 18) {
-                    fields[18] = hasDebitCard ? "yes" : "no";
+                // FIXED: Column index 14 is hasDebitCard (was incorrectly 18)
+                if (fields.length > 14) {
+                    fields[14] = hasDebitCard ? "yes" : "no";
                 }
                 
                 lines.set(i, String.join(",", fields));
@@ -135,11 +135,11 @@ public class DebitCard {
     // Save to debitCard.csv
     private static void saveToDebitCardCSV(String userid, String firstName, String lastName, String pin) throws IOException {
         if (!Files.exists(DEBIT_CARD_CSV_PATH)) {
-            List<String> headers = java.util.Arrays.asList("userid, firstname, lastname, debitBalance, debitPin");
+            List<String> headers = java.util.Arrays.asList("userid,firstname,lastname,debitBalance,debitPin");
             Files.write(DEBIT_CARD_CSV_PATH, headers);
         }
         
-        String line = String.format("%s, %s, %s, %.2f, %s",
+        String line = String.format("%s,%s,%s,%.2f,%s",
             userid,
             firstName,
             lastName,
@@ -161,10 +161,10 @@ public class DebitCard {
         
         for (int i = 1; i < lines.size(); i++) {
             String line = lines.get(i);
-            String[] fields = line.split(",");
+            String[] fields = line.split(",", -1);
             
             if (fields.length > 0 && fields[0].trim().equals(userid)) {
-                fields[3] = String.format(" %.2f", newBalance);
+                fields[3] = String.format("%.2f", newBalance);
                 lines.set(i, String.join(",", fields));
                 break;
             }
@@ -184,7 +184,10 @@ public class DebitCard {
             Map<String, String> record = debitFile.getRecord("userid", userid);
             
             if (record != null) {
-                return record.get("debitPin").trim();
+                String pin = record.get("debitPin");
+                if (pin != null) {
+                    return pin.trim();
+                }
             }
         } catch (IOException e) {
             System.out.println("Error reading PIN from CSV: " + e.getMessage());
@@ -207,11 +210,18 @@ public class DebitCard {
             String firstName = customerRecord.get("firstName");
             String lastName = customerRecord.get("lastName");
             
-            // FIXED: Clean one-line boolean expression checking for "yes"
-            boolean hasDebitCard = "yes".equalsIgnoreCase(customerRecord.get("hasDebitCard"));
+            // FIXED: Added null check for hasDebitCard
+            String hasDebitCardValue = customerRecord.get("hasDebitCard");
+            boolean hasDebitCard = hasDebitCardValue != null && "yes".equalsIgnoreCase(hasDebitCardValue);
             
             if (hasDebitCard) {
                 System.out.println("Customer already has a debit card.");
+                return null;
+            }
+            
+            // Check if bankingUsers has been initialized
+            if (bankingUsers == null) {
+                System.out.println("Error: Banking system not initialized. Please set banking users first.");
                 return null;
             }
             
@@ -358,6 +368,11 @@ public class DebitCard {
             return 0.0;
         }
         
+        if (bankingUsers == null) {
+            System.out.println("Error: Banking system not initialized.");
+            return 0.0;
+        }
+        
         BankingCSV.User user = BankingCSV.findUser(bankingUsers, linkedCustomerId);
         if (user == null) {
             System.out.println("Error: User not found in banking system");
@@ -390,6 +405,11 @@ public class DebitCard {
         
         if(amount <= 0) {
             System.out.println("Error: Amount must be greater than 0");
+            return false;
+        }
+        
+        if (bankingUsers == null) {
+            System.out.println("Error: Banking system not initialized.");
             return false;
         }
         
@@ -435,6 +455,11 @@ public class DebitCard {
         
         System.out.println("Total withdrawal: $" + String.format("%.2f", totalWithdrawal));
         
+        if (bankingUsers == null) {
+            System.out.println("Error: Banking system not initialized.");
+            return false;
+        }
+        
         BankingCSV.User user = BankingCSV.findUser(bankingUsers, linkedCustomerId);
         if (user == null) {
             System.out.println("Error: User not found in banking system");
@@ -476,6 +501,11 @@ public class DebitCard {
         System.out.println("  Foreign fee (" + (FOREIGN_TRANSACTION_FEE_RATE * 100) + "%): $" + String.format("%.2f", foreignFee));
         System.out.println("  Total charge: $" + String.format("%.2f", totalCharge));
         
+        if (bankingUsers == null) {
+            System.out.println("Error: Banking system not initialized.");
+            return false;
+        }
+        
         BankingCSV.User user = BankingCSV.findUser(bankingUsers, linkedCustomerId);
         if (user == null) {
             System.out.println("Error: User not found in banking system");
@@ -506,6 +536,11 @@ public class DebitCard {
         
         if(amount <= 0) {
             System.out.println("Error: Amount must be greater than 0");
+            return false;
+        }
+        
+        if (bankingUsers == null) {
+            System.out.println("Error: Banking system not initialized.");
             return false;
         }
         
@@ -545,6 +580,11 @@ public class DebitCard {
         
         System.out.println("Applying monthly maintenance fee: $" + MONTHLY_MAINTENANCE_FEE);
         
+        if (bankingUsers == null) {
+            System.out.println("Error: Banking system not initialized.");
+            return false;
+        }
+        
         BankingCSV.User user = BankingCSV.findUser(bankingUsers, linkedCustomerId);
         if (user == null) {
             System.out.println("Error: User not found in banking system");
@@ -578,6 +618,11 @@ public class DebitCard {
         System.out.println("\nCard replacement requested.");
         System.out.println("  Reason: " + reason);
         System.out.println("  Replacement fee: $" + CARD_REPLACEMENT_FEE);
+        
+        if (bankingUsers == null) {
+            System.out.println("Error: Banking system not initialized.");
+            return null;
+        }
         
         BankingCSV.User user = BankingCSV.findUser(bankingUsers, linkedCustomerId);
         if (user == null) {
