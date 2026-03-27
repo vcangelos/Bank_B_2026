@@ -361,7 +361,7 @@ public class SavingsAccount {
     
    }
 
- public void transfer(List<CheckingAccount.Account> possibleDestinations, Scanner scanner){ //we used list for checking account because there is multiple OR one checking account per user.
+ public void transfer(List<CheckingAccount.Account> possibleDestinations, Scanner scanner, boolean transfer, boolean personalloan, double value){ //we used list for checking account because there is multiple OR one checking account per user.
         if (possibleDestinations.isEmpty()) { //checks if the list is empty we don't want that.
             System.out.println("No checking accounts available for transfer.");
             return;
