@@ -3,8 +3,7 @@
 //this is used for the random generator.
 
 import java.util.Random; //Random is used for the random ID generator  
-
-
+import java.util.Scanner;
 import java.io.BufferedWriter; //This helps us write data to the CSV file.
 import java.io.IOException; //catch errors if anything silly happens.
 import java.nio.file.Files; //to make it easier to access the files read and write functions. Our HasSavings is a static so we need static methods to make the code work. Files work hand to hand with path objects instead of using Strings we could use that which makes it platform independent.
@@ -38,6 +37,8 @@ public class SavingsAccount {
     private static final Path csvPath = Path.of("Savings.csv"); // fine the path for the CSV file
     private static final Path csvPathFee = Path.of("SavingsFeeCheck.csv"); // measuring monthly
     private static final Path csvCustomerInfo = Path.of("customerinfo.csv");
+    private static final Path csvEmployeecsv= Path.of("employeecards.csv");
+    private static final Path csvEmployeesavingscsv= Path.of("EmployeeSavings.csv");
 
     private static final long MAX = 199_999_999_999L; // This is the maximum for the savings number generator.
                                                      // //1000000000000 is Savings Account UNIQUE ID this is only for
@@ -89,6 +90,19 @@ public class SavingsAccount {
        }
        return false;
    }
+    public static boolean employeeIDExists(String userid) throws IOException { //checkifSavingsIDexist
+       try (BufferedReader reader = Files.newBufferedReader(csvEmployeesavingscsv)) {
+           reader.readLine(); //skip the header
+           String line; //String line not initialized yet
+           while ((line = reader.readLine()) != null) {
+               String[] columnsplit = line.split(","); //split line into 3 columns instead of one huge string because we don't want that.
+               if (columnsplit.length > 0 && columnsplit[0].trim().equals(userid.trim())) { //trim is useful for comparing data when white space exists what it does is removes those white spaces.
+                   return true; //return true if it is equal to the employee id
+               }
+           }
+       }
+       return false;
+   }
     public static boolean SavingsIDExistsfeefile(String SavingsID) throws IOException {
     try (BufferedReader reader = Files.newBufferedReader(csvPathFee)) {
        reader.readLine(); // skip header
@@ -126,22 +140,38 @@ public class SavingsAccount {
         }
         Files.move(temp, csvPath, StandardCopyOption.REPLACE_EXISTING);
    }
+   public static void writeEmployeeSavingsCSV(String UserID, String SavingsId, double newbalance) throws IOException //make a automatic writing system.
+   {
+        Path temp = Files.createTempFile("temp", ".csv");
+        try(BufferedReader read = Files.newBufferedReader(csvEmployeesavingscsv); BufferedWriter writetemp = Files.newBufferedWriter(temp)){
+            String line;
+            while((line = read.readLine()) != null){
+                String[] datacur = line.split(",");
+                if(datacur[0].trim().equals(UserID)){
+                    
+                    datacur[2] = String.valueOf(newbalance);
+                    writetemp.write(String.join(",", datacur));
+                }
+                else{
+                    writetemp.write(line);
+                }
+                writetemp.newLine();
+            }
+        }
+        Files.move(temp, csvEmployeesavingscsv, StandardCopyOption.REPLACE_EXISTING);
+   }
       public static void writeCustomerinfo(boolean HasSavings, String UserID) throws IOException //make a automatic writing system.
    {
         Path temp = Files.createTempFile("temp", ".csv");
         try(BufferedReader read = Files.newBufferedReader(csvCustomerInfo); BufferedWriter writetemp = Files.newBufferedWriter(temp)){
             String line;
-            System.out.println("h");
-            boolean printplease = false;
             while((line = read.readLine()) != null){
                 String[] datacur = line.split(",", -1);
                 if(datacur[0].trim().equals(UserID)){
                     for(String Value:datacur){
                     System.out.println(Value + ", ");
                     }
-                    
-                    printplease = false;
-                    datacur[12] = String.valueOf(HasSavings);
+                    datacur[9] = String.valueOf(HasSavings);
                     writetemp.write(String.join("," , datacur));
                 }
                 else{
@@ -149,19 +179,30 @@ public class SavingsAccount {
                     writetemp.write(line);
                 }
                 writetemp.newLine();
-                if(printplease = true)
-                {
-                    System.out.println("User isn't anywhere in that CSV.");
-                }
             }
         }
         Files.move(temp, csvCustomerInfo, StandardCopyOption.REPLACE_EXISTING);
    }
-   public static void ifEmployeee(){
-
+   public static boolean isEmployee(String EmployeeID) throws IOException{ //This method checks if there is the userID in employee.csv if that appears there then this is an employee savings account.
+       try (BufferedReader reader = Files.newBufferedReader(csvEmployeecsv)) {
+       reader.readLine(); // skip header
+       String line;
+       while ((line = reader.readLine()) != null) {
+           ArrayList<String> data = csvParsing.parseLine(line);
+            if(line.trim().isEmpty())
+            {
+                continue;
+            }
+   
+            if (data.size() > 0 && data.get(0).equals(EmployeeID)) { //read column 0 and lines that match with the employeeID
+            return true;
+            }
+        } 
+    }
+   return false; // not found
    }
-   public static boolean isValidUserID(String userid){
-    if(userid == null && userid.isEmpty())
+/*unused code   public static boolean isValidUserID(String userid){
+    if(userid == null || userid.isEmpty())
     {
         return false;
     }
@@ -170,45 +211,47 @@ public class SavingsAccount {
 
         if(!Character.isDigit(c))
         {
-            System.out.println("Not a digit please fix your userID");
             return false;
         }
        
     }
     return true;
    }
+    */
    public static SavingsAccount createSavingsAccount(String userid, double savingsamount) throws IOException {//
-       if(!isValidUserID(userid))
-       {
-        return null;
-       }
-       if(userIDExists(userid)) { // NEW WORKS I need to make employee CSV
+       if(userIDExists(userid) || employeeIDExists(userid)) { // NEW WORKS I need to make employee CSV
         System.out.println("There is another user with this UserID");
         return null;
+
        } else {
-           // else(hasEmployee()){}
            String SavingsID = RandomIDGenerator();
            SavingsAccount account = null; //added null so nothing bad can happen such as unitialization.
            if (savingsamount == 100) {
-               account = new SavingsAccount();
-               account.userid = userid;
-               account.setSavingsID(SavingsID);
-              account.hasSavings = true;
-              writeCustomerinfo(account.hasSavings, account.getUserid());
+            account = new SavingsAccount();
+            account.userid = userid;
+            account.setSavingsID(SavingsID);
+            account.isEmployee = isEmployee(userid);
+            account.hasSavings = true;
+              
+              
            } else if (savingsamount <= maximumbalance && savingsamount > minimumbalance) {
-               account = new SavingsAccount(userid, savingsamount);
-               account.setSavingsID(SavingsID);
-              account.hasSavings = true;
+                account = new SavingsAccount(userid, savingsamount);
+                account.setSavingsID(SavingsID);
+                account.hasSavings = true;
+                account.isEmployee = isEmployee(userid);
               writeCustomerinfo(account.hasSavings, account.getUserid());
            }
            else {
-                System.out.println("The Saivngs amount has to be in the range of 100-300");
+                System.out.println("The Savings amount has to be in the range of 100-300");
                 return null;
            }
-           try (BufferedWriter bw = Files.newBufferedWriter(csvPath, StandardOpenOption.APPEND)) {
+           Path currentCSV = isEmployee(userid) ? csvEmployeesavingscsv : csvPath;
+           try (BufferedWriter bw = Files.newBufferedWriter(currentCSV, StandardOpenOption.APPEND)) {
+                
                bw.write(userid + "," + SavingsID + "," + account.savingsbalance);
                bw.newLine(); // make a new line when written.
            }
+           writeCustomerinfo(account.hasSavings, account.getUserid());
            return account;
        }
    }
@@ -228,6 +271,7 @@ public class SavingsAccount {
                     account.userid = userid;
                     account.savingsbalance = Double.parseDouble(currentdata[2]);
                     account.SavingsID = currentdata[1];
+                    account.isEmployee = employeeIDExists(userid);
                     return account;
                 }
                 
@@ -237,7 +281,7 @@ public class SavingsAccount {
     }
     else
     {
-        System.out.println("Account doesn't exist create it.");
+        System.out.println("Account doesn't exist, create it.");
         
     }
     return null;
@@ -297,7 +341,7 @@ public class SavingsAccount {
        return SavingsID;
    }
    // ************Withdraw system**************/
-   public boolean withdrawSavings(double amt) // withdraw system that records the amount.
+   public boolean withdrawSavings(double amt) // withdraw system that records the amount. //right now this isn't use in the code at all.
    {
     if(amt <= 0 )
     {
@@ -307,37 +351,91 @@ public class SavingsAccount {
     if(amt <= savingsbalance)
     {
         savingsbalance -= amt;
+        
         return true;
     }
     else{
         System.out.println("Insufficient funds.");
         return false;
     }
-
+    
    }
-   public boolean transferToChecking(double amt, List<CheckingAccount.Account> checkings) {
-        if (amt <= 0) {
-            System.out.println("Amount must be > 0.");
-            return false;
+
+ public void transfer(List<CheckingAccount.Account> possibleDestinations, Scanner scanner){ //we used list for checking account because there is multiple OR one checking account per user.
+        if (possibleDestinations.isEmpty()) { //checks if the list is empty we don't want that.
+            System.out.println("No checking accounts available for transfer.");
+            return;
         }
-        if (amt > savingsbalance) {
-            System.out.printf("Insufficient funds in savings %s to transfer $%.2f%n", userid, amt);
-            return false;
+
+        //select multi accounts
+        CheckingAccount.Account from = null;
+        while (from == null) {
+            System.out.println("Select the checking account to transfer FROM:");
+            for (int i = 0; i < possibleDestinations.size(); i++) { //for each account list it so the user can pick between them for example 1: 20000039984 is an checking account for this example
+                CheckingAccount.Account acc = possibleDestinations.get(i);
+                if(!acc.isActive)
+                {
+                    System.out.println("Don't pick an inactive account");
+                    continue;
+                }
+                System.out.printf("%d: %s (Balance: $%.2f, Active: %s)%n",
+                        i + 1, acc.accountID, acc.balance, acc.isActive ? "Yes" : "No");
+            }
+            
+            System.out.print("Enter number: ");
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // consume newline
+            if (choice >= 1 && choice <= possibleDestinations.size()) {
+                from = possibleDestinations.get(choice - 1);
+                if (!from.isActive) {
+                    System.out.println("Selected account is inactive. Choose another.");
+                    from = null;
+                }
+            } else {
+                System.out.println("Invalid choice. Try again.");
+            }
         }
-        savingsbalance -= amt;
-        checking.balance += amt;
-        checking.addTransaction("Transfer In from Savings", amt);
-        System.out.printf("Transferred $%.2f from savings to checkings%n", amt);
-        System.out.printf("Savings balance: $%.2f | Checking balance: $%.2f%n", savingsbalance, checking.balance);
-        return true;
+        while(true)
+        {
+        // --- Enter amount ---
+        System.out.print("Enter amount to transfer: $");
+        if(!scanner.hasNextDouble())
+        {
+            System.out.println("Enter a proper number.");
+            scanner.next();
+            continue;
+        }
+               
+        double amount = scanner.nextDouble();
+        scanner.nextLine(); //input a amount
+        if(amount <= 0)
+        {
+            System.out.println("No Negative amounts or 0.");
+            continue;
+        }
+
+        if (amount > from.balance) {
+            System.out.println("Amount is insufficient, ");
+            continue;
+        }
+        from.balance += amount;
+        savingsbalance -= amount;
+        from.addTransaction("Transfer amount", amount);
+        from.updateFlags();
+
+        System.out.printf("Transferred $%.2f from %s to %s.%n", amount, from.accountID, getUserid());
+        System.out.printf("New balances -> %s: $%.2f | %s: $%.2f%n", from.accountID, from.balance, getUserid(), getSavings());
+        try {
+        update();
+        } catch (IOException e) {
+        e.printStackTrace(); // handle error
+        }
+                break;
+        }
+        //adding transaction to
+        
     }
 
-
-    //record transaction and then print history of transaction if needed.
-    private void recordTransaction(String type, double amount) {
-    String record = type + "," + amount + "," + LocalDateTime.now() + "," + savingsbalance;
-    transactionHistory.add(record);
-}
 
 public void printTransactionHistory() {
     System.out.println("Transaction History for " + this.userid + ":");
@@ -348,10 +446,18 @@ public void printTransactionHistory() {
 
 
 
-    public void updateFees() throws IOException{
+    public void update() throws IOException{
         minBalanceFee();
         yearlyFee();
         monthlyFee();
+        if(isEmployee)
+        {
+        SavingsAccount.writeEmployeeSavingsCSV(userid, SavingsID, savingsbalance);
+        
+        }
+        else{
+        SavingsAccount.writeSavingsCSV(userid, SavingsID, savingsbalance);
+        }
         applyInterest();
     }
 // ************ FEES AND INTEREST METHODS ************
