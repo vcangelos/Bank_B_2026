@@ -98,4 +98,18 @@ public class User {
             return null;
         }
     }
+    private String safe(String value) {
+        if (value == null) return "";
+        return value.replace(",", " "); // remove commas
+    }
+    public String getCustomerID() { return customerID; }
+    public String getFirstName() { return firstName; }
+    public String getLastName() { return lastName; }
+    public double getCheckingAccount() { return checkingAccount; }
+    public String getPassword() { return password; }
+
+    // Optional setters if needed
+    public void setPassword(String password) {
+        this.password = password;
+    }
 }
