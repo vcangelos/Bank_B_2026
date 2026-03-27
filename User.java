@@ -8,7 +8,7 @@ public class User {
     public String phoneNumber;
     public String bankLocation;
     public String bankPhoneNumber;
-    public double savingsAccount;
+    public boolean savingsAccount;
     public double checkingAccount;
     public String creditCard;
     public double creditCardLimit;
@@ -23,7 +23,7 @@ public class User {
     public User(String customerID, String firstName, String lastName,
                 String ssn, String dob, String email, String phoneNumber,
                 String bankLocation, String bankPhoneNumber,
-                double savingsAccount, double checkingAccount,
+                boolean savingsAccount, double checkingAccount,
                 String creditCard, double creditCardLimit,
                 int creditScore, boolean hasDebitCard,
                 double cdBalance, double cdInterestRate,
@@ -54,7 +54,7 @@ public class User {
         return String.join(",",
                 customerID, firstName, lastName, ssn, dob, email, phoneNumber,
                 bankLocation, bankPhoneNumber,
-                String.valueOf(savingsAccount),
+                savingsAccount,
                 String.valueOf(checkingAccount),
                 creditCard,
                 String.valueOf(creditCardLimit),
@@ -82,7 +82,7 @@ public class User {
                     p[6].trim(),
                     p[7].trim(),
                     p[8].trim(),
-                    Double.parseDouble(p[9].trim()),
+                    p[9].trim(),
                     Double.parseDouble(p[10].trim()),
                     p[11].trim(),
                     Double.parseDouble(p[12].trim()),
