@@ -26,7 +26,7 @@ public class SavingsAccount {
     //private static csvFile FeeCheck; // savingsFee will equal to CSVpathFee
     private String userid; // current userID lets say they registered or they were recent the constructor we'll need userID as a verification method
     private String SavingsID; //savings ID is a unique verification method to see if the user has a savings account or not.
-    private final double interestamount = 0.01; //interest is 5% 
+    private final double interestamount = 0.0042; //interest is 5% 
     private boolean isEmployee = false;
     private boolean hasSavings;
 
