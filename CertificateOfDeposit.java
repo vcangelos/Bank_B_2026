@@ -35,10 +35,6 @@ public class CertificateOfDeposit {
     
     // Reference to checking/savings systems
     private static List<BankingCSV.User> bankingUsers;
-    
-    // TODO: This Map resets when the program restarts! 
-    // You need to build a method to read CDs from a file when the bank boots up, 
-    // otherwise customers lose their CD dates and IDs.
     private static Map<String, CertificateOfDeposit> activeCDs = new HashMap<>();
     
     private static int nextCDNumber = 1;
