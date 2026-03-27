@@ -1,6 +1,7 @@
 import java.time.LocalDate;
 import java.nio.file.Path;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -24,21 +25,24 @@ public class CertificateOfDeposit {
     private static final double MIN_DEPOSIT = 1000.00;
     private static final double EARLY_WITHDRAWAL_PENALTY_RATE = 0.10;
     
-    // CSV Index Constants (Fixed to hit the correct columns)
+    // CSV Index Constants 
     private static final int CSV_CD_BALANCE_IDX = 19;
     private static final int CSV_CD_RATE_IDX = 20;
-    private static final int CSV_SAVINGS_BALANCE_IDX = 2; // Assuming Savings is [userid, savingsID, balance]
+    private static final int CSV_SAVINGS_BALANCE_IDX = 2;
     
     // CSV paths
     private static final Path CUSTOMER_CSV_PATH = Path.of("customerInfo.csv");
     private static final Path SAVINGS_CSV_PATH = Path.of("Savings.csv");
+    private static final Path CD_RECORDS_CSV_PATH = Path.of("cd_records.csv"); // NEW: Dedicated CD storage
     
     // Reference to checking/savings systems
     private static List<BankingCSV.User> bankingUsers;
-    private static Map<String, CertificateOfDeposit> activeCDs = new HashMap<>();
     
+    // Stores active CDs in memory while the program is running
+    private static Map<String, CertificateOfDeposit> activeCDs = new HashMap<>();
     private static int nextCDNumber = 1;
     
+    // Standard Constructor for brand new CDs
     public CertificateOfDeposit(String cdID, String customerID, double principal, double interestRate, int termMonths) {
         this.cdID = cdID;
         this.customerID = customerID;
@@ -51,6 +55,19 @@ public class CertificateOfDeposit {
         this.isClosed = false;
     }
     
+    // NEW: Overloaded Constructor specifically for rebuilding older CDs from the CSV file
+    public CertificateOfDeposit(String cdID, String customerID, double principal, double interestRate, int termMonths, LocalDate startDate, LocalDate maturityDate, boolean isMatured, boolean isClosed) {
+        this.cdID = cdID;
+        this.customerID = customerID;
+        this.principal = principal;
+        this.interestRate = interestRate;
+        this.termMonths = termMonths;
+        this.startDate = startDate;
+        this.maturityDate = maturityDate;
+        this.isMatured = isMatured;
+        this.isClosed = isClosed;
+    }
+    
     public static void setBankingUsers(List<BankingCSV.User> users) {
         bankingUsers = users;
     }
@@ -61,7 +78,82 @@ public class CertificateOfDeposit {
         return id;
     }
     
-    // SYNCHRONIZED and using correct indexes (19 & 20)
+    // --- NEW CSV FILE MANAGERS FOR cd_records.csv ---
+    
+    // Loads all saved CDs from the CSV file into memory when the program starts
+    public static void loadActiveCDs() {
+        try {
+            if (!Files.exists(CD_RECORDS_CSV_PATH)) {
+                List<String> headers = java.util.Arrays.asList("cdID,customerID,principal,interestRate,termMonths,startDate,maturityDate,isMatured,isClosed");
+                Files.write(CD_RECORDS_CSV_PATH, headers);
+                return;
+            }
+
+            List<String> lines = Files.readAllLines(CD_RECORDS_CSV_PATH);
+            
+            for (int i = 1; i < lines.size(); i++) {
+                String[] data = lines.get(i).split(",", -1);
+                
+                if (data.length >= 9) {
+                    String id = data[0].trim();
+                    String custId = data[1].trim();
+                    double prin = Double.parseDouble(data[2].trim());
+                    double rate = Double.parseDouble(data[3].trim());
+                    int months = Integer.parseInt(data[4].trim());
+                    LocalDate start = LocalDate.parse(data[5].trim());
+                    LocalDate end = LocalDate.parse(data[6].trim());
+                    boolean matured = Boolean.parseBoolean(data[7].trim());
+                    boolean closed = Boolean.parseBoolean(data[8].trim());
+                    
+                    CertificateOfDeposit loadedCD = new CertificateOfDeposit(id, custId, prin, rate, months, start, end, matured, closed);
+                    activeCDs.put(id, loadedCD);
+                    
+                    int cdNum = Integer.parseInt(id.replace("CD", ""));
+                    if (cdNum >= nextCDNumber) {
+                        nextCDNumber = cdNum + 1;
+                    }
+                }
+            }
+            System.out.println("Successfully loaded " + activeCDs.size() + " active CDs into memory.");
+            
+        } catch (Exception e) {
+            System.out.println("Error loading CD records: " + e.getMessage());
+        }
+    }
+    
+    // Adds a brand new CD row to the file
+    private static synchronized void appendCDRecord(CertificateOfDeposit cd) throws IOException {
+        if (!Files.exists(CD_RECORDS_CSV_PATH)) {
+            List<String> headers = java.util.Arrays.asList("cdID,customerID,principal,interestRate,termMonths,startDate,maturityDate,isMatured,isClosed");
+            Files.write(CD_RECORDS_CSV_PATH, headers);
+        }
+        
+        String line = String.format("%s,%s,%.2f,%f,%d,%s,%s,%b,%b",
+            cd.cdID, cd.customerID, cd.principal, cd.interestRate, cd.termMonths, 
+            cd.startDate.toString(), cd.maturityDate.toString(), cd.isMatured, cd.isClosed);
+            
+        Files.write(CD_RECORDS_CSV_PATH, java.util.Arrays.asList(line), StandardOpenOption.APPEND);
+    }
+    
+    // Updates a CD row if it matures or gets closed
+    private static synchronized void updateCDRecord(CertificateOfDeposit cd) throws IOException {
+        if (!Files.exists(CD_RECORDS_CSV_PATH)) return;
+        
+        List<String> lines = Files.readAllLines(CD_RECORDS_CSV_PATH);
+        for (int i = 1; i < lines.size(); i++) {
+            String[] fields = lines.get(i).split(",", -1);
+            if (fields.length > 0 && fields[0].trim().equals(cd.cdID)) {
+                lines.set(i, String.format("%s,%s,%.2f,%f,%d,%s,%s,%b,%b",
+                    cd.cdID, cd.customerID, cd.principal, cd.interestRate, cd.termMonths, 
+                    cd.startDate.toString(), cd.maturityDate.toString(), cd.isMatured, cd.isClosed));
+                break;
+            }
+        }
+        Files.write(CD_RECORDS_CSV_PATH, lines);
+    }
+    
+    // --- EXISTING CSV MANAGERS ---
+    
     private static synchronized void updateCustomerCDInfo(String customerID, double cdBalance, double cdInterestRate) throws IOException {
         List<String> lines = Files.readAllLines(CUSTOMER_CSV_PATH);
         if (lines.isEmpty()) return;
@@ -82,7 +174,6 @@ public class CertificateOfDeposit {
         Files.write(CUSTOMER_CSV_PATH, lines);
     }
     
-    // SYNCHRONIZED and safely replaces ONLY the balance to protect the Savings team's extra columns
     private static synchronized void updateSavingsBalance(String userID, String savingsID, double newBalance) throws IOException {
         List<String> lines = Files.readAllLines(SAVINGS_CSV_PATH);
         
@@ -100,6 +191,8 @@ public class CertificateOfDeposit {
         }
         Files.write(SAVINGS_CSV_PATH, lines);
     }
+    
+    // --- MENUS AND INTERFACES ---
     
     public static void welcomeScreen(Scanner scanner, String customerID) {
         try {
@@ -166,6 +259,13 @@ public class CertificateOfDeposit {
         try {
             System.out.println("\n=== Create Certificate of Deposit ===");
             
+            for (CertificateOfDeposit existingCD : activeCDs.values()) {
+                if (existingCD.getCustomerID().equals(customerID) && !existingCD.isClosed()) {
+                    System.out.println("Error: Customers are currently limited to 1 active CD.");
+                    return null;
+                }
+            }
+            
             BankingCSV.User user = BankingCSV.findUser(bankingUsers, customerID);
             if (user == null || user.accounts.isEmpty()) {
                 System.out.println("Error: You must have a checking account to create a CD.");
@@ -218,20 +318,23 @@ public class CertificateOfDeposit {
                 return null;
             }
             
-            System.out.println("\nWithdrawing $" + String.format("%.2f", amount) + " from checking account...");
-            user.withdraw(checkingAccountID, amount);
-            
             String cdID = generateCDID();
             CertificateOfDeposit newCD = new CertificateOfDeposit(cdID, customerID, amount, interestRate, termMonths);
             
+            // First we save to our files. If these fail, no money is withdrawn.
             updateCustomerCDInfo(customerID, amount, interestRate);
+            appendCDRecord(newCD); // NEW: Saves to the cd_records.csv
+            
+            System.out.println("\nWithdrawing $" + String.format("%.2f", amount) + " from checking account...");
+            user.withdraw(checkingAccountID, amount);
             
             System.out.println("\n✓ Certificate of Deposit created successfully!");
             newCD.displayInfo();
             return newCD;
             
         } catch (IOException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("Error saving CD data: " + e.getMessage());
+            System.out.println("Transaction cancelled. No money was withdrawn.");
             return null;
         }
     }
@@ -242,7 +345,6 @@ public class CertificateOfDeposit {
         boolean hasActiveCDs = false;
         for (CertificateOfDeposit cd : activeCDs.values()) {
             if (cd.getCustomerID().equals(customerID) && !cd.isClosed()) {
-                // Ensure maturity status is up to date before displaying
                 cd.checkMaturity();
                 cd.displayInfo();
                 hasActiveCDs = true;
@@ -274,7 +376,6 @@ public class CertificateOfDeposit {
             return;
         }
         
-        // Force a check right before interacting with it
         cd.checkMaturity();
         
         if (cd.isMatured()) {
@@ -296,6 +397,8 @@ public class CertificateOfDeposit {
         }
     }
     
+    // --- BUSINESS LOGIC AND MATH ---
+    
     public String getCdID() { return cdID; }
     public String getCustomerID() { return customerID; }
     public double getPrincipal() { return principal; }
@@ -313,9 +416,12 @@ public class CertificateOfDeposit {
     }
     
     public void checkMaturity() {
-        LocalDate today = LocalDate.now();
-        if (today.isAfter(maturityDate) || today.isEqual(maturityDate)) {
-            isMatured = true;
+        if (!isMatured) { // Only run if it hasn't already matured
+            LocalDate today = LocalDate.now();
+            if (today.isAfter(maturityDate) || today.isEqual(maturityDate)) {
+                isMatured = true;
+                try { updateCDRecord(this); } catch (IOException e) {} // NEW: Update CSV
+            }
         }
     }
     
@@ -378,8 +484,9 @@ public class CertificateOfDeposit {
         
         try {
             updateCustomerCDInfo(customerID, 0.0, 0.0);
+            updateCDRecord(this); // NEW: Saves the 'Closed' status to the CD CSV
         } catch (IOException e) {
-            System.out.println("Warning: Could not update customerInfo.csv");
+            System.out.println("Warning: Could not update CSV files.");
         }
         
         return amountReturned;
@@ -391,7 +498,7 @@ public class CertificateOfDeposit {
             return 0.0;
         }
         
-        checkMaturity(); // Ensure state is up to date
+        checkMaturity(); 
         if (!isMatured) {
             System.out.println("Warning: CD has not matured yet. Early withdrawal penalty will apply.");
             return withdrawEarly();
@@ -399,7 +506,7 @@ public class CertificateOfDeposit {
         
         double finalAmount = calculateMaturityValue();
         
-        System.out.println("\n your CD has matured");
+        System.out.println("\n🎉 CONGRATULATIONS! Your CD has matured!");
         System.out.println("\n=== Final Worth ===");
         System.out.println("Original deposit: $" + String.format("%.2f", principal));
         System.out.println("Interest earned: $" + String.format("%.2f", calculateInterest()));
@@ -412,8 +519,9 @@ public class CertificateOfDeposit {
         
         try {
             updateCustomerCDInfo(customerID, 0.0, 0.0);
+            updateCDRecord(this); // NEW: Saves the 'Closed' status to the CD CSV
         } catch (IOException e) {
-            System.out.println("Warning: Could not update customerInfo.csv");
+            System.out.println("Warning: Could not update CSV files");
         }
         
         return finalAmount;
