@@ -24,6 +24,11 @@ public class CertificateOfDeposit {
     private static final double MIN_DEPOSIT = 1000.00;
     private static final double EARLY_WITHDRAWAL_PENALTY_RATE = 0.10;
     
+    // CSV Index Constants (Fixed to hit the correct columns)
+    private static final int CSV_CD_BALANCE_IDX = 19;
+    private static final int CSV_CD_RATE_IDX = 20;
+    private static final int CSV_SAVINGS_BALANCE_IDX = 2; // Assuming Savings is [userid, savingsID, balance]
+    
     // CSV paths
     private static final Path CUSTOMER_CSV_PATH = Path.of("customerInfo.csv");
     private static final Path SAVINGS_CSV_PATH = Path.of("Savings.csv");
@@ -31,10 +36,11 @@ public class CertificateOfDeposit {
     // Reference to checking/savings systems
     private static List<BankingCSV.User> bankingUsers;
     
-    // Store active CDs
+    // TODO: This Map resets when the program restarts! 
+    // You need to build a method to read CDs from a file when the bank boots up, 
+    // otherwise customers lose their CD dates and IDs.
     private static Map<String, CertificateOfDeposit> activeCDs = new HashMap<>();
     
-    // CD counter for generating unique IDs
     private static int nextCDNumber = 1;
     
     public CertificateOfDeposit(String cdID, String customerID, double principal, double interestRate, int termMonths) {
@@ -49,69 +55,58 @@ public class CertificateOfDeposit {
         this.isClosed = false;
     }
     
-    // Main banking system provides access to checking/savings accounts
     public static void setBankingUsers(List<BankingCSV.User> users) {
         bankingUsers = users;
     }
     
-    // Generate unique CD ID
     private static String generateCDID() {
         String id = "CD" + String.format("%06d", nextCDNumber);
         nextCDNumber++;
         return id;
     }
     
-    // Update customerInfo.csv with CD balance and interest rate
-    private static void updateCustomerCDInfo(String customerID, double cdBalance, double cdInterestRate) throws IOException {
+    // SYNCHRONIZED and using correct indexes (19 & 20)
+    private static synchronized void updateCustomerCDInfo(String customerID, double cdBalance, double cdInterestRate) throws IOException {
         List<String> lines = Files.readAllLines(CUSTOMER_CSV_PATH);
+        if (lines.isEmpty()) return;
         
-        if (lines.isEmpty()) {
-            System.out.println("Error: customerInfo.csv is empty");
-            return;
-        }
-        
-        // Find and update the customer's row
         for (int i = 1; i < lines.size(); i++) {
             String line = lines.get(i);
             String[] fields = line.split(",", -1);
             
             if (fields.length > 0 && fields[0].trim().equals(customerID)) {
-                // Update cdBalance (index 15) and cdInterestRate (index 16)
-                if (fields.length > 16) {
-                    fields[15] = String.valueOf(cdBalance);
-                    fields[16] = String.valueOf(cdInterestRate);
+                if (fields.length > CSV_CD_RATE_IDX) {
+                    fields[CSV_CD_BALANCE_IDX] = String.valueOf(cdBalance);
+                    fields[CSV_CD_RATE_IDX] = String.valueOf(cdInterestRate);
                 }
-                
                 lines.set(i, String.join(",", fields));
                 break;
             }
         }
-        
         Files.write(CUSTOMER_CSV_PATH, lines);
     }
     
-    // Update Savings.csv with new balance
-    private static void updateSavingsBalance(String userID, String savingsID, double newBalance) throws IOException {
+    // SYNCHRONIZED and safely replaces ONLY the balance to protect the Savings team's extra columns
+    private static synchronized void updateSavingsBalance(String userID, String savingsID, double newBalance) throws IOException {
         List<String> lines = Files.readAllLines(SAVINGS_CSV_PATH);
         
-        // Update the matching line
         for (int i = 1; i < lines.size(); i++) {
             String line = lines.get(i);
-            String[] fields = line.split(",");
+            String[] fields = line.split(",", -1);
             
             if (fields.length > 0 && fields[0].trim().equals(userID)) {
-                lines.set(i, userID + "," + savingsID + "," + newBalance);
+                if (fields.length > CSV_SAVINGS_BALANCE_IDX) {
+                    fields[CSV_SAVINGS_BALANCE_IDX] = String.valueOf(newBalance);
+                }
+                lines.set(i, String.join(",", fields));
                 break;
             }
         }
-        
         Files.write(SAVINGS_CSV_PATH, lines);
     }
     
-    // CHECKLIST: Welcome Screen
     public static void welcomeScreen(Scanner scanner, String customerID) {
         try {
-            // Print greeting message
             csvFile customerFile = new csvFile(CUSTOMER_CSV_PATH);
             Map<String, String> customerRecord = customerFile.getRecord("customerID", customerID);
             
@@ -127,78 +122,66 @@ public class CertificateOfDeposit {
             System.out.println("   Certificate of Deposit (CD)");
             System.out.println("------------------------------------------");
             System.out.println("Welcome, " + firstName + " " + lastName + "!");
-            System.out.println();
-            System.out.println("A Certificate of Deposit allows you to invest");
+            System.out.println("\nA Certificate of Deposit allows you to invest");
             System.out.println("your money for a fixed term at a higher interest");
             System.out.println("rate. Upon maturity, your earnings will be");
             System.out.println("transferred to your Savings Account.");
             System.out.println("========================================");
             
-            // Loop for creating multiple CDs
             boolean continueCreating = true;
-            
             while (continueCreating) {
-                // Query if user wishes to create a CD
                 System.out.print("\nWould you like to create a Certificate of Deposit? (yes/no): ");
                 String response = scanner.next().toLowerCase();
                 
                 if (response.equals("yes") || response.equals("y")) {
-                    // Go to CD Interface
                     CertificateOfDeposit cd = cdInterface(scanner, customerID);
                     
                     if (cd != null) {
-                        // Store the CD
                         activeCDs.put(cd.getCdID(), cd);
                         
-                        // Offer option to create another CD
                         System.out.print("\nWould you like to create another CD? (yes/no): ");
                         String another = scanner.next().toLowerCase();
-                        
                         if (!another.equals("yes") && !another.equals("y")) {
                             continueCreating = false;
                         }
                     } else {
-                        // CD creation failed, ask if they want to try again
                         System.out.print("\nWould you like to try again? (yes/no): ");
                         String retry = scanner.next().toLowerCase();
-                        
                         if (!retry.equals("yes") && !retry.equals("y")) {
                             continueCreating = false;
                         }
                     }
                 } else {
-                    // Return to main menu
                     System.out.println("Returning to main menu...");
                     continueCreating = false;
                 }
             }
-            
         } catch (IOException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
     
-    // CHECKLIST: CD Interface
     private static CertificateOfDeposit cdInterface(Scanner scanner, String customerID) {
+        if (bankingUsers == null) {
+            System.out.println("Error: Banking system not initialized. Call setBankingUsers first.");
+            return null;
+        }
+
         try {
             System.out.println("\n=== Create Certificate of Deposit ===");
             
-            // Check if customer has a checking account
             BankingCSV.User user = BankingCSV.findUser(bankingUsers, customerID);
-            
             if (user == null || user.accounts.isEmpty()) {
                 System.out.println("Error: You must have a checking account to create a CD.");
                 return null;
             }
             
-            // Check if customer has a savings account
             if (!SavingsAccount.userIDExists(customerID)) {
                 System.out.println("Error: You must have a savings account to create a CD.");
                 System.out.println("CD funds will be transferred to savings upon maturity.");
                 return null;
             }
             
-            // Offer selection of term lengths and interest rates
             System.out.println("\nAvailable CD Terms:");
             System.out.println("1. 6 months  - 3.0% APY");
             System.out.println("2. 12 months - 4.0% APY");
@@ -211,7 +194,6 @@ public class CertificateOfDeposit {
             
             int termMonths;
             double interestRate;
-            
             switch (choice) {
                 case 1: termMonths = 6; interestRate = 0.03; break;
                 case 2: termMonths = 12; interestRate = 0.04; break;
@@ -223,41 +205,33 @@ public class CertificateOfDeposit {
                     return null;
             }
             
-            // Prompt for deposit amount (must be >= $1000)
             System.out.print("\nEnter deposit amount (minimum $1,000): $");
             double amount = scanner.nextDouble();
             
-            // Validate amount
             if (amount < MIN_DEPOSIT) {
                 System.out.println("Error: The amount is less than $1,000. Minimum deposit is $" + String.format("%.2f", MIN_DEPOSIT));
                 return null;
             }
             
-            // Check if customer has enough in checking account
             String checkingAccountID = user.accounts.get(0).accountID;
             double checkingBalance = user.accounts.get(0).balance;
             
             if (amount > checkingBalance) {
                 System.out.println("Error: Insufficient funds in checking account.");
                 System.out.println("Available balance: $" + String.format("%.2f", checkingBalance));
-                System.out.println("Required: $" + String.format("%.2f", amount));
                 return null;
             }
             
-            // Withdraw from checking account
             System.out.println("\nWithdrawing $" + String.format("%.2f", amount) + " from checking account...");
             user.withdraw(checkingAccountID, amount);
             
-            // Generate CD ID and create CD
             String cdID = generateCDID();
             CertificateOfDeposit newCD = new CertificateOfDeposit(cdID, customerID, amount, interestRate, termMonths);
             
-            // Update customerInfo.csv
             updateCustomerCDInfo(customerID, amount, interestRate);
             
             System.out.println("\n✓ Certificate of Deposit created successfully!");
             newCD.displayInfo();
-            
             return newCD;
             
         } catch (IOException e) {
@@ -266,14 +240,14 @@ public class CertificateOfDeposit {
         }
     }
     
-    // CHECKLIST: Prompt if user wishes to withdraw (before maturation)
     public static void manageCD(Scanner scanner, String customerID) {
-        // Show all active CDs for this customer
         System.out.println("\n=== Your Certificates of Deposit ===");
         
         boolean hasActiveCDs = false;
         for (CertificateOfDeposit cd : activeCDs.values()) {
             if (cd.getCustomerID().equals(customerID) && !cd.isClosed()) {
+                // Ensure maturity status is up to date before displaying
+                cd.checkMaturity();
                 cd.displayInfo();
                 hasActiveCDs = true;
             }
@@ -284,40 +258,33 @@ public class CertificateOfDeposit {
             return;
         }
         
-        // Prompt if user wishes to withdraw money
         System.out.print("\nDo you wish to withdraw money from a CD? (yes/no): ");
         String response = scanner.next().toLowerCase();
-        
         if (!response.equals("yes") && !response.equals("y")) {
             System.out.println("Returning to menu...");
             return;
         }
         
-        // Get CD ID
         System.out.print("Enter CD ID: ");
         String cdID = scanner.next();
-        
         CertificateOfDeposit cd = activeCDs.get(cdID);
         
         if (cd == null || !cd.getCustomerID().equals(customerID)) {
             System.out.println("Error: CD not found.");
             return;
         }
-        
         if (cd.isClosed()) {
             System.out.println("Error: This CD is already closed.");
             return;
         }
         
-        // Check maturity status
+        // Force a check right before interacting with it
         cd.checkMaturity();
         
         if (cd.isMatured()) {
-            // CD has matured - no penalty
             System.out.println("\nYour CD has matured! No penalty will be applied.");
             cd.withdrawAtMaturity();
         } else {
-            // CD has NOT matured - warn about penalty
             System.out.println("\n⚠ WARNING: Your CD has not yet matured.");
             System.out.println("Maturity Date: " + cd.getMaturityDate());
             System.out.println("If you withdraw now, a 10% penalty will be applied.");
@@ -326,7 +293,6 @@ public class CertificateOfDeposit {
             String confirm = scanner.next().toLowerCase();
             
             if (confirm.equals("yes") || confirm.equals("y")) {
-                // Calculate penalty and withdraw
                 cd.withdrawEarly();
             } else {
                 System.out.println("Withdrawal cancelled. Your CD remains active.");
@@ -334,29 +300,12 @@ public class CertificateOfDeposit {
         }
     }
     
-    public String getCdID() {
-        return cdID;
-    }
-    
-    public String getCustomerID() {
-        return customerID;
-    }
-    
-    public double getPrincipal() {
-        return principal;
-    }
-    
-    public LocalDate getMaturityDate() {
-        return maturityDate;
-    }
-    
-    public boolean isMatured() {
-        return isMatured;
-    }
-    
-    public boolean isClosed() {
-        return isClosed;
-    }
+    public String getCdID() { return cdID; }
+    public String getCustomerID() { return customerID; }
+    public double getPrincipal() { return principal; }
+    public LocalDate getMaturityDate() { return maturityDate; }
+    public boolean isMatured() { return isMatured; }
+    public boolean isClosed() { return isClosed; }
     
     public double calculateInterest() {
         double years = termMonths / 12.0;
@@ -374,7 +323,6 @@ public class CertificateOfDeposit {
         }
     }
     
-    // Transfer to savings account
     private boolean depositToSavings(double amount) {
         try {
             if (!SavingsAccount.userIDExists(customerID)) {
@@ -409,18 +357,17 @@ public class CertificateOfDeposit {
         }
     }
     
-    // CHECKLIST: Withdraw before maturation - calculate penalty and cancel CD
     public double withdrawEarly() {
         if (isClosed) {
             System.out.println("Error: CD is already closed");
             return 0.0;
         }
         
+        checkMaturity();
         if (isMatured) {
             return withdrawAtMaturity();
         }
         
-        // Calculate penalty using penalty formula (10%)
         double penalty = principal * EARLY_WITHDRAWAL_PENALTY_RATE;
         double amountReturned = principal - penalty;
         
@@ -431,11 +378,8 @@ public class CertificateOfDeposit {
         System.out.println("CD Status: CANCELLED");
         
         isClosed = true;
-        
-        // Transfer to savings account
         depositToSavings(amountReturned);
         
-        // Clear CD info from customerInfo.csv
         try {
             updateCustomerCDInfo(customerID, 0.0, 0.0);
         } catch (IOException e) {
@@ -445,13 +389,13 @@ public class CertificateOfDeposit {
         return amountReturned;
     }
     
-    // CHECKLIST: Didn't withdraw before maturation - notify, calculate/display, transfer to savings
     public double withdrawAtMaturity() {
         if (isClosed) {
             System.out.println("Error: CD is already closed");
             return 0.0;
         }
         
+        checkMaturity(); // Ensure state is up to date
         if (!isMatured) {
             System.out.println("Warning: CD has not matured yet. Early withdrawal penalty will apply.");
             return withdrawEarly();
@@ -459,8 +403,7 @@ public class CertificateOfDeposit {
         
         double finalAmount = calculateMaturityValue();
         
-        // Notify user that CD has matured
-        System.out.println("\n🎉 CONGRATULATIONS! Your CD has matured! finally");
+        System.out.println("\n your CD has matured");
         System.out.println("\n=== Final Worth ===");
         System.out.println("Original deposit: $" + String.format("%.2f", principal));
         System.out.println("Interest earned: $" + String.format("%.2f", calculateInterest()));
@@ -468,11 +411,9 @@ public class CertificateOfDeposit {
         
         isClosed = true;
         
-        // Transfer funds to Savings Account
         System.out.println("\nTransferring funds to your Savings Account...");
         depositToSavings(finalAmount);
         
-        // Clear CD info from customerInfo.csv
         try {
             updateCustomerCDInfo(customerID, 0.0, 0.0);
         } catch (IOException e) {
