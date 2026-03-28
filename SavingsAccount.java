@@ -15,7 +15,7 @@ import java.nio.file.StandardOpenOption; //we don't want to overwrite when we cr
 import java.io.BufferedReader; //is used to read line by line
 
 import java.time.LocalDate;
-import java.time.LocalDateTime; //convert to localdatetime for example New york eastern time.
+
 public class SavingsAccount {
     /*** Variables ***/
     private double savingsbalance = 0; // TODO this is our savings balance which will start in a range if the customer first creates their account in about 100-300 $                                  
@@ -361,10 +361,14 @@ public class SavingsAccount {
     
    }
 
- public void transfer(List<CheckingAccount.Account> possibleDestinations, Scanner scanner, boolean transfer, boolean personalloan, double value){ //we used list for checking account because there is multiple OR one checking account per user.
+ public double transfer(List<CheckingAccount.Account> possibleDestinations, Scanner scanner, boolean transfer, double value){ //we used list for checking account because there is multiple OR one checking account per user. 
+    //transfer true from source -> savings
+    if(transfer == true){
+        if(possibleDestinations != null)  //if not null then transfer with checking otherwise swap defaultly
+        {
         if (possibleDestinations.isEmpty()) { //checks if the list is empty we don't want that.
             System.out.println("No checking accounts available for transfer.");
-            return;
+            return value;
         }
 
         //select multi accounts
@@ -418,13 +422,15 @@ public class SavingsAccount {
             System.out.println("Amount is insufficient, ");
             continue;
         }
-        from.balance += amount;
-        savingsbalance -= amount;
+        from.balance -= amount;
+        savingsbalance += amount;
         from.addTransaction("Transfer amount", amount);
         from.updateFlags();
 
-        System.out.printf("Transferred $%.2f from %s to %s.%n", amount, from.accountID, getUserid());
-        System.out.printf("New balances -> %s: $%.2f | %s: $%.2f%n", from.accountID, from.balance, getUserid(), getSavings());
+System.out.printf("Transferred $%.2f from %s to %s.%n",
+        amount, from.accountID, getUserid());
+System.out.printf("New balances -> %s: $%.2f | %s: $%.2f%n",
+        from.accountID, from.balance, getUserid(), getSavings());
         try {
         update();
         } catch (IOException e) {
@@ -432,10 +438,173 @@ public class SavingsAccount {
         }
                 break;
         }
-        //adding transaction to
-        
-    }
+        return value;
+        }
+        else{
+            while(true)
+        {
+        // --- Enter amount ---
+        System.out.print("Enter amount to transfer: $");
+        if(!scanner.hasNextDouble())
+        {
+            System.out.println("Enter a proper number.");
+            scanner.next();
+            continue;
+        }
+               
+        double amount = scanner.nextDouble();
+        scanner.nextLine(); //input a amount
+        if(amount <= 0)
+        {
+            System.out.println("No Negative amounts or 0.");
+            continue;
+        }
 
+        if (amount > value) {
+            System.out.println("Amount is insufficient, ");
+            continue;
+        }
+        value -= amount;
+        savingsbalance += amount;
+
+System.out.printf("Transferred $%.2f from $%.2f to %s.%n",
+        amount, value, getUserid());
+System.out.printf("New balances -> $%.2f | %s: $%.2f%n",
+        value, getUserid(), getSavings());
+        try {
+        update();
+        } catch (IOException e) {
+        e.printStackTrace(); // handle error
+        }
+                break;
+        
+        }
+        //adding transaction to
+       return value; 
+    }
+    }
+    else{
+        if(possibleDestinations != null)  //if not null then transfer with checking otherwise swap defaultly
+        {
+        if (possibleDestinations.isEmpty()) { //checks if the list is empty we don't want that.
+            System.out.println("No checking accounts available for transfer.");
+            return value;
+        }
+
+        //select multi accounts
+        CheckingAccount.Account from = null;
+        while (from == null) {
+            System.out.println("Select the checking account to transfer FROM:");
+            for (int i = 0; i < possibleDestinations.size(); i++) { //for each account list it so the user can pick between them for example 1: 20000039984 is an checking account for this example
+                CheckingAccount.Account acc = possibleDestinations.get(i);
+                if(!acc.isActive)
+                {
+                    System.out.println("Don't pick an inactive account");
+                    continue;
+                }
+                System.out.printf("%d: %s (Balance: $%.2f, Active: %s)%n",
+                        i + 1, acc.accountID, acc.balance, acc.isActive ? "Yes" : "No");
+            }
+            
+            System.out.print("Enter number: ");
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // consume newline
+            if (choice >= 1 && choice <= possibleDestinations.size()) {
+                from = possibleDestinations.get(choice - 1);
+                if (!from.isActive) {
+                    System.out.println("Selected account is inactive. Choose another.");
+                    from = null;
+                }
+            } else {
+                System.out.println("Invalid choice. Try again.");
+            }
+        }
+        while(true)
+        {
+        // --- Enter amount ---
+        System.out.print("Enter amount to transfer: $");
+        if(!scanner.hasNextDouble())
+        {
+            System.out.println("Enter a proper number.");
+            scanner.next();
+            continue;
+        }
+               
+        double amount = scanner.nextDouble();
+        scanner.nextLine(); //input a amount
+        if(amount <= 0)
+        {
+            System.out.println("No Negative amounts or 0.");
+            continue;
+        }
+
+        if (amount > from.balance) {
+            System.out.println("Amount is insufficient, ");
+            continue;
+        }
+        
+        savingsbalance -= amount;
+        from.balance += amount;
+        from.addTransaction("Transfer amount", amount);
+        from.updateFlags();
+        
+System.out.printf("Transferred $%.2f from %s to %s.%n",
+        amount, from.accountID, getUserid());
+System.out.printf("New balances -> %s: $%.2f | %s: $%.2f%n",
+        from.accountID, from.balance, getUserid(), getSavings());
+        try {
+        update();
+        } catch (IOException e) {
+        e.printStackTrace(); // handle error
+        }
+                break;
+        }
+        }
+        else{
+            while(true)
+        {
+        // --- Enter amount ---
+        System.out.print("Enter amount to transfer: $");
+        if(!scanner.hasNextDouble())
+        {
+            System.out.println("Enter a proper number.");
+            scanner.next();
+            continue;
+        }
+               
+        double amount = scanner.nextDouble();
+        scanner.nextLine(); //input a amount
+        if(amount <= 0)
+        {
+            System.out.println("No Negative amounts or 0.");
+            continue;
+        }
+
+        if (amount > value) {
+            System.out.println("Amount is insufficient, ");
+            continue;
+        }
+        value += amount;
+        savingsbalance -= amount;
+
+System.out.printf("Transferred $%.2f from $%.2f to %s.%n",
+        amount, value, getUserid());
+System.out.printf("New balances -> $%.2f | %s: $%.2f%n",
+        value, getUserid(), getSavings());
+        try {
+        update();
+        } catch (IOException e) {
+        e.printStackTrace(); // handle error
+        }
+                break;
+        
+        }
+        //adding transaction to
+        return value;
+        }
+    }
+    return value;
+    }
 
 public void printTransactionHistory() {
     System.out.println("Transaction History for " + this.userid + ":");
