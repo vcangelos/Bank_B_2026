@@ -56,7 +56,7 @@ public class CustomerRepository {
                     escape(customer.getBankPhoneNumber()) + "," +
                     escape(String.valueOf(customer.getSavingsAccount())) + "," +
                     escape(String.valueOf(customer.getCheckingAccount())) + "," +
-                    escape(String.valueOf(customer.EmployeeAccount())) + "," +
+                    escape(String.valueOf(customer.getEmployeeAccount())) + "," +
                     escape(String.valueOf(customer.getCreditCard())) + "," +
                     escape(String.valueOf(customer.getCreditCardLimit())) + "," +
                     escape(String.valueOf(customer.getCreditScore())) + "," +
