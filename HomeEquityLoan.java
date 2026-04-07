@@ -1,6 +1,9 @@
 
+import java.io.*;
+import java.util.*;
+
 public class HomeEquityLoan {
-    private double appraisedHomeValue; //house value
+    private double appraisedValue; //house value
     private double currentMortgageBalance; //mortgage balance
     private double loanAmount; //total amount loaned
     private double availableEquity; //appraised value - mortgage balance
@@ -23,9 +26,19 @@ public class HomeEquityLoan {
     private int paymentsMade;
     private double accountBalance;
 
+    private BankingCSV.User user;
+    private String accountID;
+    private SavingsAccount savingsAccount;
     
     //overloaded constructor
-    public HomeEquityLoan(double appraisedHomeValue, double currentMortgageBalance, double loanAmount, int termMonths, BankingCSV.User user, String accountID, SavingsAccount savingsAccount, String accounType) {
+    public HomeEquityLoan(double appraisedHomeValue,
+                          double currentMortgageBalance,
+                          double loanAmount,
+                          int termMonths,
+                          BankingCSV.User user,
+                          String accountID,
+                          SavingsAccount savingsAccount,
+                          String accountType) {
         this.appraisedValue = appraisedValue;
         this.currentMortgageBalance = currentMortgageBalance;
         this.loanAmount = loanAmount;
@@ -57,10 +70,10 @@ public class HomeEquityLoan {
     
     //this is for one payment
     public void makePayment() {
-        if (remainingBalance <= 0) 
+        if (remainingBalance <= 0) {
             System.out.println("Loan already paid off.");
             return;
-        
+        }
 
         boolean success = false;
 
@@ -73,13 +86,16 @@ public class HomeEquityLoan {
                     if (acc.balance >= monthlyPayment) {
                         user.withdraw(accountID, monthlyPayment);
                         success = true;
-                    
+                    }
                     break;
+                }
+            }
+        }
 
         //SAVINGS ACCOUNT
-             } else if (accountType.equalsIgnoreCase("savings")) {
+            else if (accountType.equalsIgnoreCase("savings")) {
 
-                if (savingsAccount != null) 
+                if (savingsAccount != null) {
                     success = savingsAccount.withdrawSavings(monthlyPayment);
              }
         }
@@ -98,9 +114,9 @@ public class HomeEquityLoan {
         paymentsMade++;
 
         System.out.println("Loan Payment #" + paymentsMade);
-        System.out.println("Interest: " + interest);
-        System.out.println("Principal: " + principal);
         System.out.println("Remaining Loan Balance: " + remainingBalance);
+        
+        saveToCSV();
     }
     
     //simulate all payments
@@ -109,6 +125,26 @@ public class HomeEquityLoan {
             makePayment();
         }
         System.out.println("Loan fully paid!");
+    }
+    
+    
+    public void saveToCSV() {
+        try {
+            FileWriter writer = new FileWriter("Home.csv", true);
+
+            writer.append(appraisedValue + "," +
+                          currentMortgageBalance + "," +
+                          loanAmount + "," +
+                          termMonths + "," +
+                          remainingBalance + "," +
+                          paymentsMade + "," +
+                          accountType + "\n");
+
+            writer.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
     
     
