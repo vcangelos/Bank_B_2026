@@ -58,18 +58,14 @@ public class CustomerRepository {
                     escape(customer.getZipcode()) + "," +
                     escape(customer.getBankLocation()) + "," +
                     escape(customer.getBankPhoneNumber()) + "," +
-
                     escape(String.valueOf(customer.getSavingsAccount())) + "," +
                     escape(String.valueOf(customer.getSavingsBalance())) + "," +
-
                     escape(String.valueOf(customer.getCheckingAccount())) + "," +
                     escape(String.valueOf(customer.getCheckingBalance())) + "," +
-
                     escape(String.valueOf(customer.getEmployeeAccount())) + "," +
                     escape(String.valueOf(customer.getCreditCard())) + "," +
                     escape(String.valueOf(customer.getCreditCardBalance())) + "," +
                     escape(String.valueOf(customer.getCreditCardLimit())) + "," +
-
                     escape(String.valueOf(customer.getCreditScore())) + "," +
                     escape(String.valueOf(customer.hasDebitCard())) + "," +
                     escape(String.valueOf(customer.getCdBalance())) + "," +
