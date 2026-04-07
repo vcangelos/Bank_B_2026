@@ -1,9 +1,7 @@
 //Moneymarket is a premium version of MoneyMarket account.
 import java.util.Random; //Random is used for the random ID generator  
 import java.util.Scanner;
-
 import javax.imageio.IIOException;
-
 import java.io.BufferedWriter; //This helps us write data to the CSV file.
 import java.io.IOException; //catch errors if anything silly happens.
 import java.nio.file.Files; //to make it easier to access the files read and write functions. Our hasMoney is a static so we need static methods to make the code work. Files work hand to hand with path objects instead of using Strings we could use that which makes it platform independent.
@@ -14,8 +12,11 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption; //we don't want to overwrite when we create a MoneyMarket ID account we want to append.
 import java.sql.Driver;
 import java.io.BufferedReader; //is used to read line by line
-
 import java.time.LocalDate;
+
+//CURRENT WORK:  DriversLicense: almost done. 
+
+
 
 public class moneyMarket {
     /*** Variables ***/
@@ -23,12 +24,13 @@ public class moneyMarket {
     private final double minBalanceFee = 15; // minimum balance fee is 15 dollars.
     private final double monthlyFee = 12; // TODO monthly fee is 12 dollars.
     private final double yearlyFee = 48; // TODO 48 dollars.
+    private final double overlimitfee = 15;
     //private static csvFile file; // csvFile equals to the path of the CSV file.
     //private static csvFile FeeCheck; // MoneyMarketFee will equal to CSVpathFee
     private String userid; // current userID lets say they registered or they were recent the constructor we'll need userID as a verification method
     private String MoneyID; //MoneyMarket ID is a unique verification method to see if the user has a MoneyMarket account or not.
     private double currentwithdraw = 0;
-    
+    private boolean isLogged;
     private boolean isEmployee = false;
     private boolean hasMoney;
     
@@ -47,8 +49,8 @@ public class moneyMarket {
                                                      
                                                
     private static final long MIN = 500_000_000_000L; // minimum for the random number generator
-    private static final double minimumbalance = 100;
-    private static final double maximumbalance = 300;
+    private static final double minimumbalance = 2500;
+    private static final double maximumbalance = 5000;
     private static final double MAXWITHDRAW = 6;
     private final double interestamount = 0.005; //interest is 5% 
 
@@ -190,8 +192,9 @@ public class moneyMarket {
    }
    
 
-      public static void writeCustomerinfo(boolean hasMoney, String UserID) throws IOException //make a automatic writing system.
+   public static void writeCustomerinfo(boolean hasMoney, String UserID, String toMoneyCSV) throws IOException //make a automatic writing system.
    {
+    if(!toMoneyCSV)
         Path temp = Files.createTempFile("temp", ".csv");
         try(BufferedReader read = Files.newBufferedReader(csvCustomerInfo); BufferedWriter writetemp = Files.newBufferedWriter(temp)){
             String line;
@@ -210,6 +213,14 @@ public class moneyMarket {
                 }
                 writetemp.newLine();
             }
+        }
+        else{
+        Path temptomoneyMarket = Files.createTempFile("temp" ".csv");
+        try(BufferedReader csvinfo = Files.newBufferedReader(csvCustomerInfo); BufferedWriter writetemp = Files.newBufferedReader(temp); BufferedReader moneyMark = Files.newBufferedReader(csvPath)){ //csvpath is Money.csv
+        String currentlinecustomer;
+        while((currentlinecustomer = csvinfo.readLine()) !=null)
+        String[] currentrow = currentlinecustomer.split(",", -1);
+        if(currentrow[0].trim().equals(userid)){
         }
         Files.move(temp, csvCustomerInfo, StandardCopyOption.REPLACE_EXISTING);
    }
@@ -434,7 +445,24 @@ public class moneyMarket {
                 underlimit = true;
             }
             else if(withdrawlimit >= MAXWITHDRAW){
+                if(amt <= 0 )
+                {
+                underlimit = true;   
+                System.out.println("Account can't be less than or equal to 0, so please choose a higher value.");
+
+                }
+                if(amt <= balance)
+                {
                 underlimit = false;
+                currentwithdraw++;
+                balance -= amt;
+                balance -= overlimitfee;     
+                }
+                else{
+                underlimit = false;
+                System.out.println("Insufficient funds.");
+                }
+
             }
             else{
                 if(underlimit == true)
@@ -452,10 +480,6 @@ public class moneyMarket {
                 else{
                 System.out.println("Insufficient funds.");
                 }
-                }
-                else
-                {
-                    System.out.println("Over the limit, withdraw limit is 6.");
                 }
             }
             writer.write(String.join(",",
