@@ -1,6 +1,7 @@
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.BufferedWriter;
 
 public class CustomerRepository {
 
@@ -15,11 +16,14 @@ public class CustomerRepository {
 
         if (!file.exists()) {
 
-            try (FileWriter writer = new FileWriter(file)) {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
 
                 writer.write(
                     "customerID,firstName,lastName,ssn,dob,email,phoneNumber,State,City,Zipcode," +
-                    "bankLocation,bankPhoneNumber,savingsAccount,checkingAccount,EmployeeAccount,creditCard,creditCardLimit," +
+                    "bankLocation,bankPhoneNumber," +
+                    "savingsAccount,savingsBalance," +
+                    "checkingAccount,checkingBalance," +
+                    "EmployeeAccount,creditCard,creditCardBalance,creditCardLimit," +
                     "creditScore,hasDebitCard,cdBalance,cdInterestRate\n"
                 );
             }
@@ -39,7 +43,7 @@ public class CustomerRepository {
             // Ensure file exists
             initializeCSV();
 
-            try (FileWriter writer = new FileWriter(FILE_NAME, true)) {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME, true))) {
 
                 String line =
                     escape(customer.getCustomerID()) + "," +
@@ -54,11 +58,18 @@ public class CustomerRepository {
                     escape(customer.getZipcode()) + "," +
                     escape(customer.getBankLocation()) + "," +
                     escape(customer.getBankPhoneNumber()) + "," +
+
                     escape(String.valueOf(customer.getSavingsAccount())) + "," +
+                    escape(String.valueOf(customer.getSavingsBalance())) + "," +
+
                     escape(String.valueOf(customer.getCheckingAccount())) + "," +
+                    escape(String.valueOf(customer.getCheckingBalance())) + "," +
+
                     escape(String.valueOf(customer.getEmployeeAccount())) + "," +
                     escape(String.valueOf(customer.getCreditCard())) + "," +
+                    escape(String.valueOf(customer.getCreditCardBalance())) + "," +
                     escape(String.valueOf(customer.getCreditCardLimit())) + "," +
+
                     escape(String.valueOf(customer.getCreditScore())) + "," +
                     escape(String.valueOf(customer.hasDebitCard())) + "," +
                     escape(String.valueOf(customer.getCdBalance())) + "," +
