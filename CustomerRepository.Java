@@ -18,7 +18,7 @@ public class CustomerRepository {
             try (FileWriter writer = new FileWriter(file)) {
 
                 writer.write(
-                    "customerID,firstName,lastName,ssn,dob,email,phoneNumber,bankLocation,State,City,Zipcode" +
+                    "customerID,firstName,lastName,ssn,dob,email,phoneNumber,bankLocation,State,City,Zipcode," +
                     "bankPhoneNumber,savingsAccount,checkingAccount,EmployeeAccount,creditCard,creditCardLimit," +
                     "creditScore,hasDebitCard,cdBalance,cdInterestRate\n"
                 );
