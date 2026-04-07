@@ -1,6 +1,9 @@
 //Moneymarket is a premium version of MoneyMarket account.
 import java.util.Random; //Random is used for the random ID generator  
 import java.util.Scanner;
+
+import javax.imageio.IIOException;
+
 import java.io.BufferedWriter; //This helps us write data to the CSV file.
 import java.io.IOException; //catch errors if anything silly happens.
 import java.nio.file.Files; //to make it easier to access the files read and write functions. Our hasMoney is a static so we need static methods to make the code work. Files work hand to hand with path objects instead of using Strings we could use that which makes it platform independent.
@@ -9,6 +12,7 @@ import java.util.List;
 import java.nio.file.Path; //This function is used to find the file you want for example I'm using this to find my MoneyMarket.csv
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption; //we don't want to overwrite when we create a MoneyMarket ID account we want to append.
+import java.sql.Driver;
 import java.io.BufferedReader; //is used to read line by line
 
 import java.time.LocalDate;
@@ -162,6 +166,30 @@ public class moneyMarket {
         }
         Files.move(temp, csvEmployeeMoneyMarketcsv, StandardCopyOption.REPLACE_EXISTING);
    }
+
+   //under here is a customerinfo read for last name in customer info.
+   public static char ReadCustomerinfo(int column, String UserID) throws IOException
+     {    
+        try(BufferedReader read = Files.newBufferedReader(csvCustomerInfo)){
+            String line;
+            while((line = read.readLine()) != null){
+                String[] datacur = line.split(",", -1);
+                if(datacur[0].trim().equals(UserID)){
+                    /*for(String Value:datacur){
+                    System.out.println(Value + ", ");
+                    }*/
+                   char ch = datacur[column].charAt(0);
+                   return ch;
+                }
+                else{
+                return '\0';
+                }
+            }
+        }
+        return '\0';
+   }
+   
+
       public static void writeCustomerinfo(boolean hasMoney, String UserID) throws IOException //make a automatic writing system.
    {
         Path temp = Files.createTempFile("temp", ".csv");
@@ -170,9 +198,9 @@ public class moneyMarket {
             while((line = read.readLine()) != null){
                 String[] datacur = line.split(",", -1);
                 if(datacur[0].trim().equals(UserID)){
-                    for(String Value:datacur){
+                    /*for(String Value:datacur){
                     System.out.println(Value + ", ");
-                    }
+                    }*/
                     datacur[9] = String.valueOf(hasMoney);
                     writetemp.write(String.join("," , datacur));
                 }
@@ -185,6 +213,8 @@ public class moneyMarket {
         }
         Files.move(temp, csvCustomerInfo, StandardCopyOption.REPLACE_EXISTING);
    }
+
+
    public static boolean isEmployee(String EmployeeID) throws IOException{ //This method checks if there is the userID in employee.csv if that appears there then this is an employee MoneyMarket account.
        try (BufferedReader reader = Files.newBufferedReader(csvEmployeecsv)) {
        reader.readLine(); // skip header
@@ -289,6 +319,40 @@ public class moneyMarket {
     return null;
    }
 
+    public static boolean DriversLicenseExists(String DriversID) throws IOException{ //Generate a unique drivers ID. No same ID distributed.
+    try (BufferedReader reader = Files.newBufferedReader(csvPath)) {            
+           reader.readLine(); // this line skips the header for example (userid,MoneyID,MoneyMarket,DriversLicense)
+           String line;
+           while ((line = reader.readLine()) != null) { // as line doesn't equal to NULL (end of file) continue.
+               String[] currentdata_to_col = line.split(",", -1); 
+               if (currentdata_to_col.length > 2 && currentdata_to_col[3].equals(DriversID)) {
+                   return true;
+               }
+           }
+       }                                                                        
+       return false; // return false if there is no MoneyMarket ID equal to another MoneyMarket ID
+   }
+   public static String RandomIDGeneratorDriversLicense(String UserID) throws IOException{
+   Random rand = new Random();
+   char firstchar = ReadCustomerinfo(2, UserID);
+   String DriversID;
+   do{
+    if(firstchar == '\0')
+    {
+        return null;
+    }
+    firstchar = Character.toUpperCase(firstchar);
+    StringBuilder string = new StringBuilder();
+    string.append(firstchar);
+
+    for(int i = 0; i<14; i++){
+        string.append(rand.nextInt(10));
+    }
+    DriversID = string.toString();
+
+   }while(DriversLicenseExists(DriversID));
+    return DriversID;    
+   }
    public static String RandomIDGenerator() throws IOException // make the randomIDGenerator a static so it doesn't belong to an object but an standard ID generator for MoneyMarket ids
    {
        Random rand = new Random(); // rand can generate random numbers
@@ -313,6 +377,7 @@ public class moneyMarket {
        }                                                                        
        return false; // return false if there is no MoneyMarket ID equal to another MoneyMarket ID
    }
+   
    //START Both getMoneyMarket() and setMoneyMarket() are used for debugging.
        public double getMoneyMarket()
        {
@@ -368,7 +433,7 @@ public class moneyMarket {
                 currentwithdraw = 0;
                 underlimit = true;
             }
-            else if(currentwithdraw >= MAXWITHDRAW){
+            else if(withdrawlimit >= MAXWITHDRAW){
                 underlimit = false;
             }
             else{
