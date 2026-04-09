@@ -360,15 +360,15 @@ public class SavingsAccount {
     }
     
    }
-//transfer 
- public double transfer(List<CheckingAccount.Account> possibleDestinations, Scanner scanner, boolean transfer){ //we used list for checking account because there is multiple OR one checking account per user. 
+
+ public double transfer(List<CheckingAccount.Account> possibleDestinations, Scanner scanner, boolean transfer, double value){ //we used list for checking account because there is multiple OR one checking account per user. USE VALUE ONLY IF IT'S OUTSIDE CHECKING ACCOUNT TRANSFER FOR EXAMPLE loans to savings.
     //transfer true from source -> savings
     if(transfer == true){
         if(possibleDestinations != null)  //if not null then transfer with checking otherwise swap defaultly
         {
         if (possibleDestinations.isEmpty()) { //checks if the list is empty we don't want that.
             System.out.println("No checking accounts available for transfer.");
-            return 0;
+            return value;
         }
 
         //select multi accounts
@@ -427,9 +427,9 @@ public class SavingsAccount {
         from.addTransaction("Transfer amount", amount);
         from.updateFlags();
 
-System.out.printf("Transferred $%.2f from %s to %s.%n",
+        System.out.printf("Transferred $%.2f from %s to %s.%n",
         amount, from.accountID, getUserid());
-System.out.printf("New balances -> %s: $%.2f | %s: $%.2f%n",
+        System.out.printf("New balances -> %s: $%.2f | %s: $%.2f%n",
         from.accountID, from.balance, getUserid(), getSavings());
         try {
         update();
@@ -467,9 +467,9 @@ System.out.printf("New balances -> %s: $%.2f | %s: $%.2f%n",
         value -= amount;
         savingsbalance += amount;
 
-System.out.printf("Transferred $%.2f from $%.2f to %s.%n",
+        System.out.printf("Transferred $%.2f from $%.2f to %s.%n",
         amount, value, getUserid());
-System.out.printf("New balances -> $%.2f | %s: $%.2f%n",
+        System.out.printf("New balances -> $%.2f | %s: $%.2f%n",
         value, getUserid(), getSavings());
         try {
         update();
