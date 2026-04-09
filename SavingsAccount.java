@@ -538,7 +538,8 @@ public class SavingsAccount {
             continue;
         }
 
-        if (amount > from.balance) {
+        if(amount > savingsbalance)
+        {
             System.out.println("Amount is insufficient, ");
             continue;
         }
@@ -579,17 +580,18 @@ System.out.printf("New balances -> %s: $%.2f | %s: $%.2f%n",
             System.out.println("No Negative amounts or 0.");
             continue;
         }
-
-        if (amount > value) {
-            System.out.println("Amount is insufficient, ");
+        if(amount>savingsbalance)
+        {
+            System.out.println("Amount is insufficient, the maximum transfer is " + savingsbalance);
             continue;
         }
-        value += amount;
         savingsbalance -= amount;
+        value += amount;
+        
 
-System.out.printf("Transferred $%.2f from $%.2f to %s.%n",
+        System.out.printf("Transferred $%.2f from $%.2f to %s.%n",
         amount, value, getUserid());
-System.out.printf("New balances -> $%.2f | %s: $%.2f%n",
+        System.out.printf("New balances -> $%.2f | %s: $%.2f%n",
         value, getUserid(), getSavings());
         try {
         update();
