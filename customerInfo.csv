@@ -1,0 +1,3 @@
+customerID,firstName,lastName,SSN,DOB,email,phoneNumber,BankLocation,bankPhoneNumber,SavingsAccount,CheckingAccount,CreditCard,creditCardLimit,creditScore,hasDebitCard,cdBalance,cdInterestRate,password,securityQuestion,securityAnswer,isLocked
+NT784000174,john,doe,123-45-6789,12/24/2000,johndoe@gmail.com,1234567890,New York,(212) 555-0101,0.0,200.0,,0.0,0,false,0.0,0.0,GVE/3J2k+3KkoF62aRdUjTyQ/5TVQZ4fI2PuqJ3+4d0=,favorite color?,green,false
+NT359879440,jane,doe,987-65-4321,12/25/2000,janedoe@gmail.com,098-765-4321,New Jersey,(732) 555-0202,400.0,0.0,,0.0,0,false,0.0,0.0,6mzs6guvzBuTqAIw5CzeRnEMQhJ4dFO+ztIR6700IyY=,favorite sport?,padel,false

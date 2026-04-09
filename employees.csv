@@ -1,0 +1,3 @@
+employee_id,name,salary,address,position,account_with_bank
+323111,Alice Smith,40000,123 Main St,Teller,true
+395195,Bobby Johnson,63000,456 Secondary St,Loan Officer,true
