@@ -360,15 +360,15 @@ public class SavingsAccount {
     }
     
    }
-
- public double transfer(List<CheckingAccount.Account> possibleDestinations, Scanner scanner, boolean transfer, double value){ //we used list for checking account because there is multiple OR one checking account per user. 
+//transfer 
+ public double transfer(List<CheckingAccount.Account> possibleDestinations, Scanner scanner, boolean transfer){ //we used list for checking account because there is multiple OR one checking account per user. 
     //transfer true from source -> savings
     if(transfer == true){
         if(possibleDestinations != null)  //if not null then transfer with checking otherwise swap defaultly
         {
         if (possibleDestinations.isEmpty()) { //checks if the list is empty we don't want that.
             System.out.println("No checking accounts available for transfer.");
-            return value;
+            return 0;
         }
 
         //select multi accounts
