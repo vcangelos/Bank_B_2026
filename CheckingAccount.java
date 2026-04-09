@@ -25,7 +25,7 @@ public class CheckingAccount {
                 transactionHistory[transactionCount][0] = type;
                 transactionHistory[transactionCount][1] = " " + amount; 
                 transactionHistory[transactionCount][2] = LocalDate.now().toString();
-                transactionHistory[transactionCount][3] = " " + this.balance;
+                transactionHistory[transactionCount][3] = " " + this.balance; 
                 transactionCount++;
             }
         }
@@ -227,19 +227,15 @@ public class CheckingAccount {
                                 return;
                             }
                         } else {
-                            acc.balance -= (amount + OVERDRAFT_FEE);
-                            acc.addTransaction("Withdrawal", amount);
-                            acc.addTransaction("Overdraft Fee", OVERDRAFT_FEE);
-                            acc.updateFlags();
+                            // Insufficient funds — transaction declined.
+                            // Note: OVERDRAFT_FEE ($35.00) is defined and the overdraft fee logic is
+                            // preserved above (overdraft protection via savings), but no fee is charged
+                            // for a standard overdraft; the withdrawal is simply rejected.
                             System.out.printf(
-                                "Overdraft! Withdrew $%.2f from %s. $%.2f fee applied. New balance: $%.2f%n",
-                                amount, accountID, OVERDRAFT_FEE, acc.balance);
-                            if (!acc.isActive) {
-                                System.out.println("WARNING: Account " + accountID + " has been deactivated due to 30+ days in negative balance.");
-                            } else if (acc.wentNegativeDate != null) {
-                                long days = ChronoUnit.DAYS.between(acc.wentNegativeDate, LocalDate.now());
-                                System.out.printf("WARNING: Account %s has been negative for %d day(s). It will be deactivated after 30 days.%n", accountID, days);
-                            }
+                                "Transaction declined. Insufficient funds in account %s. " +
+                                "Available balance: $%.2f, attempted withdrawal: $%.2f%n",
+                                accountID, acc.balance, amount);
+                            return;
                         }
                     }
                     acc.checkAndApplyMinBalanceFee();
