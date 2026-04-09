@@ -73,7 +73,7 @@ public class User {
 
     public static User fromCsv(String line) {
         String[] p = line.split(",", -1);  // Use -1 to keep all trailing commas
-        if (p.length < 20) return null;
+        if (p.length < 21) return null;
         try {
             User u = new User(
                     p[0].trim(),   // customerID

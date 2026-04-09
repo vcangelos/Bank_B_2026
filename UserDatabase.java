@@ -67,7 +67,7 @@ public class UserDatabase {
         for (User u : usersByEmail.values()) existing.add(u.customerID);
         String id;
         do {
-            id = "NT" + String.format("%09d", rand.nextInt(1_000_000_000));
+            id = String.format("%09d", rand.nextInt(1_000_000_000));
         } while (existing.contains(id));
         return id;
     }
