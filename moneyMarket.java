@@ -28,11 +28,14 @@ public class moneyMarket {
     //private static csvFile file; // csvFile equals to the path of the CSV file.
     //private static csvFile FeeCheck; // MoneyMarketFee will equal to CSVpathFee
     private String userid; // current userID lets say they registered or they were recent the constructor we'll need userID as a verification method
+    private String phoneNumber; // store a users phone number.
+    private String driversLicense;
     private String MoneyID; //MoneyMarket ID is a unique verification method to see if the user has a MoneyMarket account or not.
     private double currentwithdraw = 0;
     private boolean isLogged;
     private boolean isEmployee = false;
     private boolean hasMoney;
+    
     
 
     /*transaction data*/
@@ -192,9 +195,8 @@ public class moneyMarket {
    }
    
 
-   public static void writeCustomerinfo(boolean hasMoney, String UserID, String toMoneyCSV) throws IOException //make a automatic writing system.
+      public static void writeCustomerinfo(boolean hasMoney, String UserID) throws IOException //make a automatic writing system.
    {
-    if(!toMoneyCSV)
         Path temp = Files.createTempFile("temp", ".csv");
         try(BufferedReader read = Files.newBufferedReader(csvCustomerInfo); BufferedWriter writetemp = Files.newBufferedWriter(temp)){
             String line;
@@ -213,14 +215,6 @@ public class moneyMarket {
                 }
                 writetemp.newLine();
             }
-        }
-        else{
-        Path temptomoneyMarket = Files.createTempFile("temp" ".csv");
-        try(BufferedReader csvinfo = Files.newBufferedReader(csvCustomerInfo); BufferedWriter writetemp = Files.newBufferedReader(temp); BufferedReader moneyMark = Files.newBufferedReader(csvPath)){ //csvpath is Money.csv
-        String currentlinecustomer;
-        while((currentlinecustomer = csvinfo.readLine()) !=null)
-        String[] currentrow = currentlinecustomer.split(",", -1);
-        if(currentrow[0].trim().equals(userid)){
         }
         Files.move(temp, csvCustomerInfo, StandardCopyOption.REPLACE_EXISTING);
    }
@@ -282,7 +276,7 @@ public class moneyMarket {
                 account.setMoneyID(MoneyID);
                 account.hasMoney = true;
                 account.isEmployee = isEmployee(userid);
-              writeCustomerinfo(account.hasMoney, account.getUserid());
+              writeCustomerinfo(account.hasMoney, account.getUserid()); //when creating or opening an account store a phone number in a private instance variable...
            }
            else {
                 System.out.println("The MoneyMarket amount has to be in the range of 100-300");
@@ -397,6 +391,33 @@ public class moneyMarket {
        public void setMoneyMarket(double MoneyMarket)
        {//field to the parameter MoneyMarket.
        balance = MoneyMarket;
+       }
+       public String getPhonenumber(String userID) throws IOException{ // Grab phone number by searching through CSV
+        try(BufferedReader readfile = Files.newBufferedReader(csvCustomerInfo)){
+        String line;
+        
+        while((line = readfile.readLine())!=null){
+            String[] dataline = line.split(",", -1);
+            if(dataline.length > 0 && dataline[0].trim().equals(userID)){
+                String phonenum = dataline.length > 6 ? dataline[6] : "";
+                if(phonenum.length() == 10){
+                    boolean valid = true;
+
+                    for(int i = 0; i < phonenum.length(); i++){
+                        if(!Character.isDigit(phonenum.charAt(i))){
+                            valid = false;
+                            break;
+                        }
+                        if(valid){
+                            return phonenum;
+                        }
+                    }
+                }
+            }
+        }
+        }
+        return null;
+
        }
     //END
 
