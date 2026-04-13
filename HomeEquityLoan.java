@@ -1,5 +1,8 @@
+package Bank;
 
 
+
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
@@ -20,7 +23,6 @@ public class HomeEquityLoan {
     private String accountType;
     private int paymentsMade;
 
-    // ✅ USE CheckingAccount classes
     private CheckingAccount.User user;
     private String accountID;
     private CheckingAccount.SavingsAccount savingsAccount;
@@ -112,7 +114,16 @@ public class HomeEquityLoan {
 
     public void saveToCSV() {
         try {
-            FileWriter writer = new FileWriter("HomeEquity.csv", true);
+            File file = new File("Home.csv");
+            boolean fileExists = file.exists();
+
+            FileWriter writer = new FileWriter(file, true);
+
+            if (!fileExists || file.length() == 0) {
+                writer.append(
+                    "AppraisedValue,CurrentMortgageBalance,LoanAmount,TermMonths,RemainingBalance,PaymentsMade,AccountType\n"
+                );
+            }
 
             writer.append(appraisedValue + "," +
                           currentMortgageBalance + "," +
@@ -129,3 +140,4 @@ public class HomeEquityLoan {
         }
     }
 }
+
