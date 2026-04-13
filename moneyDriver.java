@@ -26,20 +26,28 @@ public class moneyDriver {
         aliceAccounts.add(acc2);
         aliceAccounts.add(acc3);
 
-  
-            String userid = newinput.nextLine();
-           
-            moneyMarket acc  = moneyMarket.createmoneyMarket(userid, 100);
-            if(acc==null)
-            {
-            acc = moneyMarket.OpenmoneyMarket(userid);
-            }
-            if(acc !=null)
-            {
-            acc.update();
-            System.out.println("Savings " + acc.getMoneyMarket());
-            }
-            newinput.close();
+        // create account (writes to file)
+        String userid = newinput.nextLine();
+moneyMarket.createmoneyMarket(userid, 3000.01);
+
+// load account (reads from file)
+List<moneyMarket> account = moneyMarket.OpenmoneyMarket(userid);
+
+// safety check
+if (account == null || account.isEmpty())
+{
+    System.out.println("Account doesn't exist, create it.");
+    return;
+}
+
+moneyMarket acc = account.get(1);
+
+acc.update();
+
+System.out.println("Savings " + acc.getMoneyMarket());
+
+newinput.close();
+    
     }
     
 }
