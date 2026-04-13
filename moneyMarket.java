@@ -35,7 +35,6 @@ public class moneyMarket {
     private boolean isLogged;
     private boolean isEmployee = false;
     private boolean hasMoney;
-    private LocalDate datecreation;
     
     
 
@@ -83,7 +82,7 @@ public class moneyMarket {
    {
        this.userID = userID;
        balance = MoneyMarketamount;// TODO I need to create a method that checks in the CSV file, if the userID has
-                                  // a MoneyMarket account or not if not then request back to them they don't have it.
+                                      // a MoneyMarket account or not if not then request back to them they don't have it.
                                       // Request the User if he wants to create a MoneyMarket account.
    }
    /*
@@ -256,7 +255,6 @@ public class moneyMarket {
     */
    public static moneyMarket createmoneyMarket(String userID, double MoneyMarketamount) throws IOException {//
     boolean isEmployee_t = isEmployee(userID);
-           
            String MoneyID = RandomIDGenerator();
            String phoneNum = getPhonenumber(userID);
            String socialSecurity = getSocialSecurity(userID);
@@ -274,8 +272,6 @@ public class moneyMarket {
             account.phoneNumber = phoneNum;
             account.driversLicense = DL;
             account.hasMoney = true;
-            LocalDate today = LocalDate.now(); //date creation for the account.
-            String date = today.toString();
               
               
            } else if (MoneyMarketamount <= maximumbalance && MoneyMarketamount > minimumbalance) {
@@ -293,32 +289,17 @@ public class moneyMarket {
            Path currentCSV = isEmployee(userID) ? csvEmployeeMoneyMarketcsv : csvPath;
            try (BufferedWriter bw = Files.newBufferedWriter(currentCSV, StandardOpenOption.APPEND)) {
                 
-               bw.write(userID + "," + MoneyID + "," + account.balance + "," + DL + "," + date);
+               bw.write(userID + "," + MoneyID + "," + account.balance + "," + DL);
                bw.newLine(); // make a new line when written.
            }
            writeCustomerinfo(account.hasMoney, account.getuserID());
            return account;
    }
-   public static void closeMoneyMarketAccount(List<moneyMarket> acc, String moneyID) throws IOException //early account closure 5-50 it rises depending on the day
+   public static void closeMoneyMarketAccount(List<moneyMarket> acc, String moneyID) throws IOException //WIP 
    {
-        moneyMarket currentaccount = null;
         for(int i = 0; i < acc.size(); i++){
-
             if(acc.get(i).getMoneyID().equals(moneyID)){
-                currentaccount = acc.get(i);
-                LocalDate today;
-                long daysOpen = java.time.temporal.ChronoUnit.DAYS.between(datecreation, today);
 
-                if (daysOpen < 30) {
-                    fee = 50;
-                } 
-                else if (daysOpen < 180) {
-                fee = 20;
-                }
-
-
-                currentaccount.datecreation //make date creation subtract todays date so we can see if it's an enclosure reach and depending on the variable
-                break;
             }
 
         }
@@ -337,18 +318,12 @@ public class moneyMarket {
                 String[] currentdata = currentline.split(",", -1);
                 if(currentdata[0].trim().equals(userID))
                 {
-
                     moneyMarket account = new moneyMarket();
                     account.userID = userID;
-                    //that uses currentdata
-                    account.MoneyID = currentdata[1];
                     account.balance = Double.parseDouble(currentdata[2]);
-                    account.driversLicense = currentdata[3]
-                    account.datecreation = LocalDate.parse(currentdata[4]);
-                    //logic aspect
+                    account.MoneyID = currentdata[1];
                     account.isLogged = true;
                     account.isEmployee = isEmployee(userID);
-
                     acc.add(account);
                 }
                 
@@ -1157,3 +1132,4 @@ public double applyInterest() throws IOException { //apply interest over months
 
        
 }
+
