@@ -28,6 +28,9 @@ public class MortgageLoan {
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
 
             String line;
+
+            br.readLine(); 
+            
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
 
