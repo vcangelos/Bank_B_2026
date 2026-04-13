@@ -115,12 +115,39 @@ public class MortgageLoan {
             System.out.println("You are NOT pre-approved.");
             return;
         }
-
         System.out.println("You are pre-approved!");
+        System.out.println("\nSelect Loan Type:");
+        System.out.println("1 - Fixed");
+        System.out.println("2 - ARM");
+        
+        int typeChoice = scanner.nextInt();
 
+        LoanType type;
+        if (typeChoice == 1) {
+            type = LoanType.FIXED;
+        } else if (typeChoice == 2) {
+            type = LoanType.ARM;
+        } else {
+         System.out.println("Invalid choice.");
+            return;        
+        }
         // ===== SELECT LOAN =====
-        LoanTerm term = LoanTerm.FIXED_30; // you can expand to user choice
-        LoanType type = LoanType.FIXED;
+   System.out.println("\nSelect Loan Term:");
+   LoanTerm[] terms = LoanTerm.values();
+
+   for (int i = 0; i < terms.length; i++) {
+    System.out.println((i + 1) + " - " + terms[i]);
+}
+
+int termChoice = scanner.nextInt();
+
+if (termChoice < 1 || termChoice > terms.length) {
+    System.out.println("Invalid choice.");
+    return;
+}
+
+LoanTerm term = terms[termChoice - 1];
+        
 
         double rate = getRate(term);
 
