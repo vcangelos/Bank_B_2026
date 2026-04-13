@@ -1,0 +1,4 @@
+boxID,ownerCustomerID,boxSize,annualFee,boxPassword,rentalStartDate,lastFeePaymentDate,lastAccessDate,isRented,storedItems,authorizedUsers
+SDB001,NT784000174,Medium,60.00,pass123,2026-01-15T10:00:00,2026-01-15T10:00:00,2026-03-11T15:00:00,true,Birth Certificate|Passport|Social Security Card,NT784000174|NT359879440
+SDB002,NT359879440,Small,50.00,secure456,2026-02-20T14:30:00,2026-02-20T14:30:00,2026-03-10T11:00:00,true,Marriage Certificate|Deed to House,NT359879440
+SDB003,NT784000174,Large,80.00,mybox789,2026-03-01T09:15:00,2026-03-01T09:15:00,2026-03-11T16:30:00,true,Diamond Ring|Stock Certificates|Gold Coins|Savings Bonds|Will,NT784000174
