@@ -166,7 +166,20 @@ LoanTerm term = terms[termChoice - 1];
         System.out.print("Enable autopay? (true/false): ");
         boolean autopay = scanner.nextBoolean();
 
-        processAutoPay(autopay, monthlyPayment);
+      SavingsAccount account = new SavingsAccount("user123", 5000);
+
+    if (autopay) {
+    boolean success = account.withdrawSavings(monthlyPayment);
+
+    if (success) {
+        System.out.println("Payment successful.");
+        System.out.println("Remaining balance: $" + account.getSavings());
+    } else {
+        System.out.println("Payment failed (insufficient funds).");
+    }
+} else {
+    System.out.println("Manual payment required.");
+}
 
         scanner.close();
     }
