@@ -12,7 +12,7 @@ public class moneyDriver {
             List<User> users = new ArrayList<>();
             User alice = new User(
         "1001", "Alice", "Johnson", "123-45-6789", "01/01/1990",
-        "alice@email.com", "555-123234", "NY", "New York", true, 1800.0,
+        "alice@email.com", "555-123234", "NY", "New York", 0.0, 1800.0,
         "Bank NY", 5000.0, 750, true, 0.0, 0.05,
         "extra1", "extra2", "extra3"
 );        // Create CheckingAccount.Account objects
