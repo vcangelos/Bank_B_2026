@@ -166,7 +166,10 @@ LoanTerm term = terms[termChoice - 1];
         System.out.print("Enable autopay? (true/false): ");
         boolean autopay = scanner.nextBoolean();
 
-      SavingsAccount account = new SavingsAccount("user123", 5000);
+     System.out.print("Enter starting savings balance: ");
+double balance = scanner.nextDouble();
+
+SavingsAccount account = new SavingsAccount("user123", balance);
 
     if (autopay) {
     boolean success = account.withdrawSavings(monthlyPayment);
