@@ -10,7 +10,6 @@ import java.util.List;
 import java.nio.file.Path; //This function is used to find the file you want for example I'm using this to find my MoneyMarket.csv
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption; //we don't want to overwrite when we create a MoneyMarket ID account we want to append.
-import java.sql.Driver;
 import java.io.BufferedReader; //is used to read line by line
 import java.time.temporal.ChronoUnit;
 import java.time.*;
@@ -415,7 +414,7 @@ private static double earlyClosureCalculator(long days) {
     return fee;
 }
    public static List<moneyMarket> OpenmoneyMarket(String userID) throws IOException{ //use static list to open MULTIPLE accounts during run time lets say if userid has more than 6 accounts 
-    if(userIDExists(userID) || employeeIDExists(userID)) //c
+    if(userIDExists(userID) //useridexists read both Money.csv and employee money csv by checking if user is employee check employee money otherwise check money csv.
     {
         List<moneyMarket> acc = new ArrayList<>();
         Path csvToUse = isEmployee(userID) ? csvEmployeeMoneyMarketcsv : csvPath;
