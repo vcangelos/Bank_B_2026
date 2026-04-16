@@ -6,7 +6,6 @@ import java.io.BufferedWriter; //This helps us write data to the CSV file.
 import java.io.IOException; //catch errors if anything silly happens.
 import java.nio.file.Files; //to make it easier to access the files read and write functions. Our hasMoney is a static so we need static methods to make the code work. Files work hand to hand with path objects instead of using Strings we could use that which makes it platform independent.
 import java.util.ArrayList; //Array list is needed when we don't know the size of an array or when we resize an array if you see MoneyIDexists I used array list to capture all the columns and use it to compare with the current MoneyMarket ID with the MoneyMarket ID in the current array list. Something like this psuedocode currentMoneyID = currentarraylistMoneyMarket.
-import java.util.Arrays;
 import java.util.List;
 import java.nio.file.Path; //This function is used to find the file you want for example I'm using this to find my MoneyMarket.csv
 import java.nio.file.StandardCopyOption;
@@ -15,6 +14,7 @@ import java.sql.Driver;
 import java.io.BufferedReader; //is used to read line by line
 import java.time.temporal.ChronoUnit;
 import java.time.*;
+import java.time.format.DateTimeFormatter;
 
 //CURRENT WORK:  DriversLicense: almost done. 
 
@@ -104,7 +104,9 @@ public class moneyMarket {
     * SIGNAL, use this inside createMoneyMarket or existingMoneyMarket
     */
    public static boolean userIDExists(String userID) throws IOException { //hasMoney or user ID //lets use this as a chance to create a boolean employee.
-       try (BufferedReader reader = Files.newBufferedReader(csvPath)) {
+        Path csvEmployeeornot = isEmployee(userID) ? csvEmployeeMoneyMarketcsv : csvPath;
+        
+        try (BufferedReader reader = Files.newBufferedReader(csvEmployeeornot)) {
            reader.readLine(); //skip the header
            String line; //String line not initialized yet
            while ((line = reader.readLine()) != null) {
@@ -226,11 +228,14 @@ public class moneyMarket {
             while((line = read.readLine()) != null){
                 String[] datacur = line.split(",", -1);
                 if(datacur[0].trim().equals(userID)){ //column 0 which is userID
-                    if(column < 0 || column >= datacur.length)
-                    {
-                        return null;
-                    }
-                    return datacur[column].trim();
+                    /*for(String Value:datacur){
+                    System.out.println(Value + ", ");
+                    }*/
+                   if(column < 0 || column > datacur.length)
+                   {
+                    return null;
+                   }
+                   return datacur[column].trim();
                 }
             }
         }
@@ -246,13 +251,14 @@ public class moneyMarket {
             while((line = read.readLine()) != null){
                 String[] datacur = line.split(",", -1);
                 if(datacur[0].trim().equals(userID)){
-                    if (datacur.length <= 9) {
-                        datacur = Arrays.copyOf(datacur, 10);
-                    }
+                    /*for(String Value:datacur){
+                    System.out.println(Value + ", ");
+                    }*/
                     datacur[9] = String.valueOf(hasMoney);
                     writetemp.write(String.join("," , datacur));
                 }
                 else{
+
                     writetemp.write(line);
                 }
                 writetemp.newLine();
@@ -297,48 +303,65 @@ public class moneyMarket {
     return true;
    }
     */
-   public static moneyMarket createmoneyMarket(String userID, double MoneyMarketamount) throws IOException {
-            if (MoneyMarketamount < minimumbalance || MoneyMarketamount > maximumbalance) {
-                System.out.println("The MoneyMarket amount has to be in the range of 2500-5000.");
+   public static moneyMarket createmoneyMarket(String userID, double MoneyMarketamount) throws IOException {//
+            if(MoneyMarketamount <= 0 || userID == null || userID.isEmpty())
+            {
+                System.out.println("Error: Type a proper amount.");
+                return null;
+            }
+
+            if(birthCertificate(userID))
+            {
+                System.out.println("Birth certificate verified successfully.");
+            }
+            else
+            {
+                System.out.println("Birth certificate verification failed. Account creation cancelled.");
                 return null;
             }
 
             boolean isEmployee_t = isEmployee(userID);
             String MoneyID = RandomIDGenerator();
             String phoneNum = getPhonenumber(userID);
-            LocalDate today = LocalDate.now(); // date creation for the account.
+            LocalDate today = LocalDate.now(); //date creation for the account.
             String date = today.toString();
             String socialSecurity = getSocialSecurity(userID);
-            String DL = RandomIDGeneratorDriversLicense(userID, isEmployee_t); // DL is drivers license by the way.
-
-            if (phoneNum == null || phoneNum.isEmpty() || socialSecurity == null || socialSecurity.isEmpty() || DL == null || DL.isEmpty()) {
-                System.out.println("Error: Either your phone number, social security, or driver license ID is missing.");
-                return null;
+            String DL = RandomIDGeneratorDriversLicense(userID, isEmployee_t); //DL is drivers license by the way.
+           if((phoneNum == null || socialSecurity == null) || (phoneNum.isEmpty() || socialSecurity.isEmpty())){
+            System.out.println("Error: Either your phone number or social security number is corrupted or doesn't exist.");
+            return null;
             }
-
-            moneyMarket account;
+           moneyMarket account = null; //added null so nothing bad can happen such as unitialization.
             if (MoneyMarketamount == minimumbalance) {
                 account = new moneyMarket();
                 account.userID = userID;
-            } else {
+                account.setMoneyID(MoneyID);
+                account.isEmployee = isEmployee_t;
+                account.phoneNumber = phoneNum;
+                account.driversLicense = DL;
+                account.hasMoney = true;
+            } else if (MoneyMarketamount <= maximumbalance && MoneyMarketamount > minimumbalance) {
                 account = new moneyMarket(userID, MoneyMarketamount);
-            }
+                account.setMoneyID(MoneyID);
+                account.phoneNumber = phoneNum;
+                account.driversLicense = DL;
+                account.hasMoney = true;
+                account.isEmployee = isEmployee_t;
+           }
+           else {
 
-            account.setMoneyID(MoneyID);
-            account.isEmployee = isEmployee_t;
-            account.phoneNumber = phoneNum;
-            account.driversLicense = DL;
-            account.hasMoney = true;
-            account.datecreation = today;
-
-            Path currentCSV = isEmployee_t ? csvEmployeeMoneyMarketcsv : csvPath;
-            try (BufferedWriter bw = Files.newBufferedWriter(currentCSV, StandardOpenOption.APPEND)) {
-                bw.write(userID + "," + MoneyID + "," + account.balance + "," + DL + "," + date);
-                bw.newLine(); // make a new line when written.
-            }
-
-            writeCustomerinfo(account.hasMoney, account.getuserID());
-            return account;
+                System.out.println("The MoneyMarket amount has to be in the range of 2500-5000");
+                return null; //print back that the amount isn't correct and return null to stop the account creation.
+                
+           }
+           Path currentCSV = isEmployee(userID) ? csvEmployeeMoneyMarketcsv : csvPath;
+           try (BufferedWriter bw = Files.newBufferedWriter(currentCSV, StandardOpenOption.APPEND)) {
+                
+               bw.write(userID + "," + MoneyID + "," + account.balance + "," + DL + "," + date);
+               bw.newLine(); // make a new line when written.
+           }
+           writeCustomerinfo(account.hasMoney, account.getuserID());
+           return account;
    }
 public static void earlyClosureMoneyMarketAccount(moneyMarket acc, String moneyID) throws IOException {
     if (acc == null) {
@@ -391,55 +414,68 @@ private static double earlyClosureCalculator(long days) {
 
     return fee;
 }
-   public static List<moneyMarket> OpenmoneyMarket(String userID) throws IOException{
-    if (userIDExists(userID) || employeeIDExists(userID)) {
-        boolean isEmployee_t = isEmployee(userID);
-        Path source = isEmployee_t ? csvEmployeeMoneyMarketcsv : csvPath;
+   public static List<moneyMarket> OpenmoneyMarket(String userID) throws IOException{ //use static list to open MULTIPLE accounts during run time lets say if userid has more than 6 accounts 
+    if(userIDExists(userID) || employeeIDExists(userID)) //c
+    {
         List<moneyMarket> acc = new ArrayList<>();
+        Path csvToUse = isEmployee(userID) ? csvEmployeeMoneyMarketcsv : csvPath;
 
-        try (BufferedReader readlines = Files.newBufferedReader(source)) {
+        try(BufferedReader readlines = Files.newBufferedReader(csvToUse)){
             readlines.readLine();
             String currentline;
-            while ((currentline = readlines.readLine()) != null) {
+            while((currentline = readlines.readLine()) != null){
                 String[] currentdata = currentline.split(",", -1);
-                if (currentdata[0].trim().equals(userID)) {
+                if(currentdata[0].trim().equals(userID))
+                {
+
                     moneyMarket account = new moneyMarket();
                     account.userID = userID;
+                    //that uses currentdata
                     account.MoneyID = currentdata[1];
                     account.balance = Double.parseDouble(currentdata[COL_BALANCE]);
                     account.driversLicense = currentdata[COL_DRIVERSLICENSE];
                     account.datecreation = LocalDate.parse(currentdata[COL_DATECREATED]);
+                    //logic aspect
                     account.isLogged = true;
-                    account.isEmployee = isEmployee_t;
+                    account.isEmployee = isEmployee(userID);
+
                     acc.add(account);
                 }
+                
             }
         }
 
         System.out.println("You're logged in");
         return acc;
-    } else {
-        System.out.println("Account doesn't exist, create it.");
     }
-    return null;
+    
+        System.out.println("Account doesn't exist, create it.");    
+
+        return null;
    }
 
-    public static boolean DriversLicenseExists(String DriversID, boolean isEmployee) throws IOException{ // Generate a unique drivers ID. No same ID distributed.
-        Path Csvchoice = isEmployee ? csvEmployeeMoneyMarketcsv : csvPath;
+    public static boolean DriversLicenseExists(String DriversID, boolean isEmployee) throws IOException{ //Generate a unique drivers ID. No same ID distributed.
+        Path choiceCSV;
+        if(isEmployee){
+            choiceCSV = csvEmployeeMoneyMarketcsv;
+        }
+        else{
+            choiceCSV = csvPath;
+        }
 
-        try (BufferedReader reader = Files.newBufferedReader(Csvchoice)) {
+    try (BufferedReader reader = Files.newBufferedReader(choiceCSV)) {            
            reader.readLine(); // this line skips the header for example (userID,MoneyID,MoneyMarket,DriversLicense)
            String line;
-           while ((line = reader.readLine()) != null) {
-               String[] currentdata_to_col = line.split(",", -1);
+           while ((line = reader.readLine()) != null) { // as line doesn't equal to NULL (end of file) continue.
+               String[] currentdata_to_col = line.split(",", -1); 
                if (currentdata_to_col.length > 3 && currentdata_to_col[3].equals(DriversID)) {
                    return true;
                }
            }
-       }
+       }                                                                        
        return false; // return false if there is no MoneyMarket ID equal to another MoneyMarket ID
    }
-    public static boolean birthCertificateExists(String BCID, boolean isEmployee) throws IOException{ //Generate a unique drivers ID. No same ID distributed.
+    public static boolean birthCertificateExists(String BCID, boolean isEmployee) throws IOException{ //Generate a unique birth certificate ID. No same ID distributed.
         Path Csvchoice;
         if(isEmployee){
             Csvchoice = csvEmployeeMoneyMarketcsv;
@@ -482,8 +518,9 @@ private static double earlyClosureCalculator(long days) {
    }while(DriversLicenseExists(DriversID, isEmployee));
     return DriversID;    
    }
-      public static String RandomIDBirthCertificate(String userID, boolean isEmployee) throws IOException{
+      public static String RandomIDBirthCertificate(String userID) throws IOException{
    Random rand = new Random();
+   boolean isEmployee_t = isEmployee(userID);
    String BC = "BC-";
    String birthCertificate;
    do{
@@ -495,133 +532,154 @@ private static double earlyClosureCalculator(long days) {
     }
     birthCertificate = string.toString();
 
-   }while(birthCertificateExists(birthCertificate, isEmployee(userID)));
+   }while(birthCertificateExists(birthCertificate, isEmployee_t));
     return birthCertificate;    
    }
 
 
 public static boolean birthCertificate(String userID) throws IOException {
 
-    try (Scanner scanner = new Scanner(System.in)) {
         int COL_FIRSTNAME = 1;
         int COL_LASTNAME = 2;
         int COL_DOB = 4;
-
+        
         String firstNameFromCSV = ReadCustomerinfo(COL_FIRSTNAME, userID);
         String lastNameFromCSV = ReadCustomerinfo(COL_LASTNAME, userID);
         String DOBfromcsv = ReadCustomerinfo(COL_DOB, userID);
 
         String firstName;
         String lastName;
-        String certificate_id;
-
-        while (true) {
-            System.out.print("Enter certificate ID: ");
-            certificate_id = scanner.nextLine();
-            if (certificate_id != null && !certificate_id.isEmpty()) break;
-            System.out.println("Invalid ID. Try again.");
-        }
+        Scanner scanner = new Scanner(System.in);
 
         while (true) {
             System.out.print("Enter first name: ");
             firstName = scanner.nextLine();
+            if (firstName.equalsIgnoreCase("exit")) {
+            System.out.println("Exiting birth certificate verification.");
+            return false;
+            }   
             if (firstNameFromCSV != null && firstName.equalsIgnoreCase(firstNameFromCSV)) {
                 break;
             }
-            System.out.println("Invalid first name. Please try again.");
+            System.out.println("This is not your first name. Please try again.");
         }
 
         while (true) {
             System.out.print("Enter last name: ");
             lastName = scanner.nextLine();
+            if (lastName.equalsIgnoreCase("exit")) {
+            System.out.println("Exiting birth certificate verification.");
+            return false;
+            }
             if (lastNameFromCSV != null && lastName.equalsIgnoreCase(lastNameFromCSV)) {
                 break;
             }
             System.out.println("Invalid last name. Please try again.");
         }
 
-        LocalDate dob;
-        while (true) {
-            System.out.print("Enter date of birth (YYYY-MM-DD): ");
-            String input = scanner.nextLine();
+    LocalDate expectedDob = null;
 
-            try {
-                dob = LocalDate.parse(input);
-                if (dob.isAfter(LocalDate.now())) {
-                    System.out.println("Date cannot be in the future.");
-                    continue;
-                }
-                if (DOBfromcsv != null && !DOBfromcsv.isEmpty()) {
-                    LocalDate expectedDob = LocalDate.parse(DOBfromcsv);
-                    if (!dob.equals(expectedDob)) {
-                        System.out.println("Date of birth does not match our records.");
-                        continue;
-                    }
-                }
-                break;
-            } catch (Exception e) {
-                System.out.println("Invalid date format. Try again.");
-            }
+    if (DOBfromcsv != null && !DOBfromcsv.isEmpty()) {
+        DateTimeFormatter csvFormatter = DateTimeFormatter.ofPattern("M/d/yyyy");
+        expectedDob = LocalDate.parse(DOBfromcsv, csvFormatter);
+}
+
+        while (true) {
+
+        System.out.print("Enter date of birth (YYYY-MM-DD) or type 'exit' to quit out of the process: ");
+        String input = scanner.nextLine();
+
+        if (input.equalsIgnoreCase("exit")) {
+            System.out.println("Exiting birth certificate verification.");
+            return false;
         }
+        try {
+            LocalDate dob = LocalDate.parse(input);
+
+            if (dob.isAfter(LocalDate.now())) {
+                System.out.println("Date cannot be in the future.");
+                continue;
+            }
+
+
+
+        if (expectedDob != null && !dob.equals(expectedDob)) {
+            System.out.println("Date of birth does not match our records. Please try again.");
+            continue;
+        }
+            break;
+
+        } catch (Exception e) {
+            System.out.println("Invalid date format. Try again.");
+        }
+    }
 
         return true;
-    }
+    
 }
 
 
 
    public static moneyMarket pickAccount(List<moneyMarket> accounts) throws IOException{
-    Scanner input = new Scanner(System.in);
-
-    if(accounts == null || accounts.isEmpty()) {
+    if (accounts == null || accounts.isEmpty()) {
         System.out.println("There is no accounts here.");
-        input.close();
         return null;
     }
 
-    while(true) {
+    Scanner input = new Scanner(System.in);
+    while (true) {
+        System.out.println("Select an account to view balance:");
         for (int i = 0; i < accounts.size(); i++) {
-            System.out.println(i + ": " + accounts.get(i).getMoneyID());
+            moneyMarket account = accounts.get(i);
+            System.out.printf("%d: ID=%s | Balance=$%.2f%n", i, account.getMoneyID(), account.getMoneyMarket());
         }
 
-        System.out.print("Enter a number for which account you want to open:");
+        System.out.print("Enter the account number (or type 'q' to cancel): ");
+        String line = input.nextLine().trim();
 
-        if(!input.hasNextInt()) {
-            System.out.println("Invalid input. Try again.");
-            input.next(); // clear bad input
+        if (line.equalsIgnoreCase("q") || line.equalsIgnoreCase("exit")) {
+            System.out.println("Account selection cancelled.");
+            return null;
+        }
+
+        int choice;
+        try {
+            choice = Integer.parseInt(line);
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid input. Please enter a valid number or 'q' to cancel.");
             continue;
         }
 
-        int choice = input.nextInt();
-
         if (choice >= 0 && choice < accounts.size()) {
-            input.close();
             return accounts.get(choice);
         }
 
-        System.out.println("Retry correct format.");
+        System.out.println("Invalid account number. Try again.");
     }
-    
 }
 
    public static List<moneyMarket> loadallaccounts(String userID) throws IOException{
-    boolean isEmployee_t = isEmployee(userID);
-    Path source = isEmployee_t ? csvEmployeeMoneyMarketcsv : csvPath;
     List<moneyMarket> accounts = new ArrayList<>();
-    try (BufferedReader reader = Files.newBufferedReader(source)) {
+    boolean found = false; //lets use this to protect from errors like null pointers
+    Path csvToUse = isEmployee(userID) ? csvEmployeeMoneyMarketcsv : csvPath;
+    try (BufferedReader reader = Files.newBufferedReader(csvToUse)) {
         reader.readLine(); // skip header
         String line;
 
         while ((line = reader.readLine()) != null) {
             String[] data = line.split(",", -1);
-            if (data[0].trim().equals(userID)) {
+            if(data[0].trim().equals(userID)){
                 moneyMarket account = new moneyMarket();
                 account.userID = data[0];
                 account.balance = Double.parseDouble(data[2]);
-                account.MoneyID = data.length > 1 ? data[1] : null;
-                account.isEmployee = isEmployee_t;
                 accounts.add(account);
+                found = true;
             }
+            
+        }
+        if(!found){
+            System.out.println("No accounts found for this user.");
+            return null;
         }
     }
     return accounts;
@@ -629,35 +687,29 @@ public static boolean birthCertificate(String userID) throws IOException {
    public static String RandomIDGenerator() throws IOException // make the randomIDGenerator a static so it doesn't belong to an object but an standard ID generator for MoneyMarket ids
    {
        Random rand = new Random(); // rand can generate random numbers
-       String ID;
+       String ID; // make ID String so we can easily manipulate it in CSV like reading or writing
+                  // it.
        do {
-           long number = (MIN) + (long) (rand.nextDouble() * (MAX - MIN + 1)); // the random generator that is in the range of min-max
-           ID = String.valueOf(number);
-       } while (MoneyIDExists(ID)); // Check if there is any MoneyMarket ID like it in the CSV files.
+           long number = (MIN) + (long) (rand.nextDouble() * (MAX - MIN + 1)); //the random generator that is in the range of min-max
+           ID = String.valueOf(number); // convert number to String so ID can equal to that string.
+       } while (MoneyIDExists(ID)); // Check if there is any MoneyMarket ID like it in the CSV file.
        return ID;
    }
    public static boolean MoneyIDExists(String MoneyID) throws IOException{ //MoneyID is used in the random generator so it wouldn't generate the same MoneyMarket ID as another persons MoneyMarket ID.
-       if (MoneyID == null) {
-           return false;
-       }
-       if (MoneyIDExistsInFile(MoneyID, csvPath)) {
-           return true;
-       }
-       return MoneyIDExistsInFile(MoneyID, csvEmployeeMoneyMarketcsv);
-   }
-
-   private static boolean MoneyIDExistsInFile(String MoneyID, Path file) throws IOException {
-       try (BufferedReader reader = Files.newBufferedReader(file)) {
-           reader.readLine(); // this line skips the header for example (userID,MoneyID,MoneyMarket)
-           String line;
-           while ((line = reader.readLine()) != null) {
-               String[] currentdata_to_col = line.split(",", -1);
-               if (currentdata_to_col.length > 1 && currentdata_to_col[1].equals(MoneyID)) {
-                   return true;
+       Path[] csvFiles = new Path[] { csvPath, csvEmployeeMoneyMarketcsv };
+       for (Path csv : csvFiles) {
+           try (BufferedReader reader = Files.newBufferedReader(csv)) {
+               reader.readLine(); // this line skips the header for example (userID,MoneyID,MoneyMarket)
+               String line;
+               while ((line = reader.readLine()) != null) {
+                   String[] currentdata_to_col = line.split(",", -1);
+                   if (currentdata_to_col.length > 1 && currentdata_to_col[1].equals(MoneyID)) {
+                       return true;
+                   }
                }
            }
        }
-       return false;
+       return false; // return false if there is no MoneyMarket ID equal to another MoneyMarket ID
    }
    
    //START Both getMoneyMarket() and setMoneyMarket() are used for debugging.
@@ -749,11 +801,24 @@ public static boolean birthCertificate(String userID) throws IOException {
    return datecreation; 
    }
    public static double getBalance(String userID)throws IOException{ //Use this when you don't want to create an account and just want to know the balance from the CSV
-        List<moneyMarket> accounts = loadallaccounts(userID);
-        if (accounts == null || accounts.isEmpty()) {
-            return 0.0;
+        List<moneyMarket> accountlist = loadallaccounts(userID);
+        if (accountlist == null || accountlist.isEmpty())
+        {
+            System.out.println("No accounts found for this user.");
+            return 0;
         }
-        return accounts.get(0).getMoneyMarket();
+
+        if (accountlist.size() == 1) {
+            return accountlist.get(0).getMoneyMarket();
+        }
+
+        moneyMarket account = pickAccount(accountlist);
+        if (account == null) {
+            System.out.println("No account selected.");
+            return 0;
+        }
+
+        return account.getMoneyMarket();
    }
    // ************Withdraw system**************/
    public void withdrawMoneyMarket(double amt) throws IOException // withdraw system that records the amount. //right now this isn't use in the code at all.
@@ -780,28 +845,40 @@ public static boolean birthCertificate(String userID) throws IOException {
             if (!currentMonth.equals(lastMonthlyMonth)) {
                 currentwithdraw = 0;
             }
-            if(amt <= 0)
+            boolean successfulWithdraw = false;
+            if (amt <= 0)
             {
                 System.out.println("Amount has to be greater than 0, please retry.");
             }
-            else if(amt > balance)
+            else if (amt > balance)
             {
-                System.out.printf("You can't withdraw an amount greater than the moneymarket balance.");
+                System.out.println("You can't withdraw an amount greater than the moneymarket balance.");
             }
             else{
-                
-                    if(currentwithdraw >= MAXWITHDRAW)
-                    {   currentwithdraw++;
+                if (currentwithdraw >= MAXWITHDRAW)
+                {
+                    double totalCost = amt + overlimitfee;
+                    if (totalCost > balance)
+                    {
+                        System.out.println("Insufficient funds to cover the withdrawal plus overlimit fee.");
+                    }
+                    else
+                    {
+                        currentwithdraw++;
                         balance -= amt;
                         balance -= overlimitfee;
+                        successfulWithdraw = true;
                     }
-                    else{
+                }
+                else{
                     currentwithdraw++;
                     balance -= amt;
-                    }
+                    successfulWithdraw = true;
+                }
             }
-                pick_Employee_Or_User();
 
+            if (successfulWithdraw) {
+                pick_Employee_Or_User();
                 writer.write(String.join(",",
                         MoneyID,
                         lastMinMonth,
@@ -812,7 +889,11 @@ public static boolean birthCertificate(String userID) throws IOException {
                         String.valueOf(currentwithdraw)
                 ));
                 writer.newLine();
-                continue;
+            } else {
+                writer.write(line);
+                writer.newLine();
+            }
+            continue;
 
         }
         writer.write(line);
@@ -1330,15 +1411,19 @@ public double applyInterest() throws IOException { //apply interest over months
                 String lastInterest = data.length > 5 ? data[5] : "";
                 double withdrawlimit = data.length > 6 ? Double.parseDouble(data[6]) : currentwithdraw;
 
-                
-                YearMonth lastMonth = (lastInterest == null || lastInterest.isEmpty()) ? currentMonth : YearMonth.parse(lastInterest);
-                
+                //Calculate the Interest by number of months that was missed and power that by the monthly interest rate.
+                YearMonth lastMonth;
+                try{
+                    lastMonth = (lastInterest == null || lastInterest.isEmpty()) ? currentMonth : YearMonth.parse(lastInterest);
+                }catch(Exception e){
+                    lastMonth = currentMonth;
+                }
                 long monthsMissed = ChronoUnit.MONTHS.between(lastMonth, currentMonth);
                 if (monthsMissed > 0) {
                     double monthlyRate = interestamount / 12.0;
                     csvBalance = csvBalance * Math.pow(1+monthlyRate,monthsMissed);                
                     balance = csvBalance;
-                    writeMoneyCSV(userID, MoneyID, balance);            
+                               
                     lastInterest = currentMonth.toString();
                 }
 
