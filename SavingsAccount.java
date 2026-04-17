@@ -771,8 +771,37 @@ public double monthlyFee() throws IOException {
     Files.move(tempfile, csvPathFee, StandardCopyOption.REPLACE_EXISTING);
     return savingsbalance;
 }
+    public double readSafeDouble(String[] data, int col, double fallback) {
+    try {
+        return (data.length > col && !data[col].isEmpty())
+                ? Double.parseDouble(data[col])
+                : fallback;
+    } catch (Exception e) {
+        return fallback;
+    }
+    }
+        public String readSafeString(String[] data, int col, String fallback) {
+    try {
+        return (data.length > col && !data[col].trim().isEmpty())
+                ? data[col])
+                : fallback;
+    } catch (Exception e) {
+        return fallback;
+    }
+    }
+    public LocalDate readSafeLocalDate(String[] data, int col, LocalDate fallback) {
+        if (data.length <= col || data[col] == null || data[col].trim().isEmpty()) {
+            return fallback;
+        }
 
-public double yearlyFee() throws IOException { //every year passing the user gets a fee.
+        try {
+            return LocalDate.parse(data[col]);
+        } catch (Exception e) {
+            return fallback;
+        }
+    }
+
+    public double yearlyFee() throws IOException { //every year passing the user gets a fee.
     String currentYear = String.valueOf(LocalDate.now().getYear());
 
     Path temp = Files.createTempFile("temp", ".csv");
@@ -821,51 +850,30 @@ public double yearlyFee() throws IOException { //every year passing the user get
 }
 
 public double applyInterest() throws IOException { //apply interest over months
-
-    YearMonth currentMonth = YearMonth.now();
     Path temp = Files.createTempFile("temp", ".csv");
-
     try (BufferedReader reader = Files.newBufferedReader(csvPathFee);
          BufferedWriter writer = Files.newBufferedWriter(temp)) {
-
         String line;
         while ((line = reader.readLine()) != null) {
             String[] data = line.split(",", -1);
-
             if (data[0].equals(SavingsID)) {
-
-                String lastMinMonth = data.length > 1 ? data[1] : ""; 
-                String lastMonthlyMonth = data.length > 2 ? data[2] : "";
-                double currentBalance = data.length > 3 ? Double.parseDouble(data[3]) : savingsbalance;
-                String lastYear = data.length > 4 ? data[4] : "";
-                String lastInterest = data.length > 5 ? data[5] : "";
-                
-                if(lastInterest.isEmpty()){ //if the last interest is empty then make it todays date but to string.
-                lastInterest = currentMonth.toString();
-                }
-                
-                YearMonth lastMonth;
-                try{
-                lastMonth = (lastInterest == null || lastInterest.isEmpty()) ? currentMonth : YearMonth.parse(lastInterest);
-                }catch(Exception e){
-                lastMonth = currentMonth;
-                }
-                long monthsMissed = ChronoUnit.MONTHS.between(lastMonth, currentMonth);
-                //Interest is applied via month and savings is written to savings csv so it can be written overtime
-                
-                // Use LocalDate for day-to-day precision
                 LocalDate today = LocalDate.now();
-                LocalDate lastRun = LocalDate.parse(lastInterest); // lastInterest should be a full date like "2023-10-01"
-
-                long daysMissed = ChronoUnit.DAYS.between(lastRun, today);
+                LocalDate lastMinMonth = readSafeLocalDate(data, 1, today); 
+                LocalDate lastMonthlyMonth = readSafeLocalDate(data, 2, today);
+                double currentBalance = readSafeDouble(data, 3, savingsbalance);
+                LocalDate lastYear = readSafeLocalDate(data, 4, "");
+                LocalDate lastInterest = readSafeLocalDate(data, 5, today);
+                //Interest is applied via month and savings is written to savings csv so it can be written overtime
+                // Use LocalDate for day-to-day precision
+                long daysMissed = ChronoUnit.DAYS.between(lastInterestDate, today);
 
                 if (daysMissed > 0) {
-                //1. Calculate the daily periodic rate (assuming interestamount is like 0.05 for 5%)
                 double dailyRate = interestamount / 365.0;
                 currentBalance = currentBalance * Math.pow(1 + dailyRate, daysMissed);
-    
+                savingsbalance = currentBalance;
                 lastInterest = today.toString(); 
                 }
+
                 writer.write(String.join(",",
                         SavingsID,
                         lastMinMonth,
@@ -877,7 +885,6 @@ public double applyInterest() throws IOException { //apply interest over months
                 writer.newLine();
                 continue;
             }
-
             writer.write(line);
             writer.newLine();
         }
