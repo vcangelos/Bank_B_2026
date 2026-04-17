@@ -10,6 +10,7 @@ import java.util.List;
 import java.nio.file.Path; //This function is used to find the file you want for example I'm using this to find my MoneyMarket.csv
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption; //we don't want to overwrite when we create a MoneyMarket ID account we want to append.
+import java.sql.Driver;
 import java.io.BufferedReader; //is used to read line by line
 import java.time.temporal.ChronoUnit;
 import java.time.*;
@@ -35,8 +36,10 @@ public class moneyMarket {
     private double currentwithdraw = 0;
     private boolean isLogged = false;
     private boolean isEmployee = false;
+    private LocalDate datecreation;
     private boolean hasMoney;
-    private  LocalDate datecreation;
+    private boolean isAccountClosed;
+
     
     
 
@@ -145,10 +148,6 @@ public class moneyMarket {
    return false; // not found
    }
 
-   //write to csv
-   private static Path getCorrectCSV(String userID) throws IOException {
-    return isEmployee(userID) ? csvEmployeeMoneyMarketcsv : csvPath;
-    }
    public static void writeMoneyCSV(String userID, String MoneyID, double newbalance) throws IOException //make a automatic writing system.
    {
         Path temp = Files.createTempFile("temp", ".csv");
@@ -362,6 +361,95 @@ public class moneyMarket {
            writeCustomerinfo(account.hasMoney, account.getuserID());
            return account;
    }
+
+   public static boolean removalAccountforFeecsv(String userID, String MoneyID) throws IOException { //removal of fee csv and money or employee csv
+    boolean isEmployee_t = isEmployee(userID);
+    Path csvToUse = isEmployee_t ? csvEmployeeMoneyMarketcsv : csvPath;
+    Path tempfee = Files.createTempFile("tempfee", ".csv");
+    Path tempmande = Files.createTempFile("tempmande", ".csv"); //"mande" means main csv which is money.csv or employee money market csv.
+    boolean foundfee = false;
+    boolean foundmande = false;
+
+    try (BufferedReader reader = Files.newBufferedReader(csvPathFee);
+         BufferedWriter writer = Files.newBufferedWriter(tempfee)) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+            String[] data = line.split(",", -1);
+            if (data.length > 0 && data[0].trim().equals(MoneyID)) {
+                foundfee = true;
+                continue;
+            }
+            writer.write(line);
+            writer.newLine();
+        }
+    }
+
+    try (BufferedReader reader = Files.newBufferedReader(csvToUse);
+         BufferedWriter writer = Files.newBufferedWriter(tempmande)) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+            String[] data = line.split(",", -1);
+            if (data.length > 1 && data[0].trim().equals(userID) && data[1].trim().equals(MoneyID)) {
+                foundmande = true;
+                continue;
+            }
+            writer.write(line);
+            writer.newLine();
+        }
+    }
+
+    if (foundfee) {
+        Files.move(tempfee, csvPathFee, StandardCopyOption.REPLACE_EXISTING);
+    } else {
+        Files.deleteIfExists(tempfee);
+    }
+
+    if (foundmande) {
+        Files.move(tempmande, csvToUse, StandardCopyOption.REPLACE_EXISTING);
+    } else {
+        Files.deleteIfExists(tempmande);
+    }
+
+    if (foundfee || foundmande) {
+        System.out.println("Account removal entries deleted successfully.");
+        return true;
+    }
+
+    System.out.println("No matching account data found to remove.");
+    return false;
+   }
+
+
+   public static moneyMarket closeMoneyMarket(String userID, String MoneyID) throws IOException{
+    if(userIDExists(userID) || employeeIDExists(userID))
+    {
+        List<moneyMarket> accountlist = loadallaccounts(userID);
+        if (accountlist == null || accountlist.isEmpty()) {
+            System.out.println("No accounts found for this user.");
+            return null;
+        }
+        moneyMarket account = pickAccount(acc);
+        if (account != null) {
+            if(account.updateNegativeBalance()){
+
+            }else
+            {
+               System.out.println("Account "); 
+            }
+            System.out.println("account closed");
+            return account;
+        } else {
+            System.out.println("Account selection cancelled.");
+            return null;
+        }
+
+    }
+    else
+    {
+        System.out.println("Account doesn't exist, create it.");
+        return null;
+    }
+   }
 public static void earlyClosureMoneyMarketAccount(moneyMarket acc, String moneyID) throws IOException {
     if (acc == null) {
         System.out.println("There is no Account selected.");
@@ -414,7 +502,7 @@ private static double earlyClosureCalculator(long days) {
     return fee;
 }
    public static List<moneyMarket> OpenmoneyMarket(String userID) throws IOException{ //use static list to open MULTIPLE accounts during run time lets say if userid has more than 6 accounts 
-    if(userIDExists(userID) //useridexists read both Money.csv and employee money csv by checking if user is employee check employee money otherwise check money csv.
+    if(userIDExists(userID) || employeeIDExists(userID)) //c
     {
         List<moneyMarket> acc = new ArrayList<>();
         Path csvToUse = isEmployee(userID) ? csvEmployeeMoneyMarketcsv : csvPath;
@@ -474,6 +562,178 @@ private static double earlyClosureCalculator(long days) {
        }                                                                        
        return false; // return false if there is no MoneyMarket ID equal to another MoneyMarket ID
    }
+
+
+
+   public boolean getNegativeBalance() throws IOException {
+
+    LocalDate today = LocalDate.now();
+    boolean accountPaid = true;
+
+    Path temp = Files.createTempFile("temp", ".csv");
+
+    try (BufferedReader reader = Files.newBufferedReader(csvPath);
+         BufferedWriter writer = Files.newBufferedWriter(temp)) {
+
+        String line;
+        boolean found = false;
+
+        while ((line = reader.readLine()) != null) {
+
+            String[] data = line.split(",", -1);
+
+            if (data.length > 0 && data[0].equals(userID)) {
+                found = true;
+
+                double currentBalance = Double.parseDouble(data[2]);
+
+                boolean accountClosed = data.length > 6 && Boolean.parseBoolean(data[6]);
+                String negativeTimestamp = data.length > 7 ? data[7] : "";
+
+
+            
+                if (currentBalance < 0 && negativeTimestamp.isEmpty()) {
+                    negativeTimestamp = today.toString();
+                }
+
+            if (!negativeTimestamp.isEmpty()) {
+
+            }
+                if (currentBalance < 0 && !negativeTimestamp.isEmpty()) {
+
+                    LocalDate negativeDate = LocalDate.parse(negativeTimestamp);
+                    long days = ChronoUnit.DAYS.between(negativeDate, today);
+                                    
+                
+                    if (days >= 30) {
+                        System.out.println(
+                                "Account has been negative for 30+ days. Must repay before closure."
+                        );
+                        accountPaid = false;
+
+                    }
+                }
+
+                if (currentBalance >= 0 && !negativeTimestamp.isEmpty()) {
+
+                    LocalDate negativeDate = LocalDate.parse(negativeTimestamp);
+                    long days = ChronoUnit.DAYS.between(negativeDate, today);
+                    if (days >= 30) {
+                        System.out.println("Debt cleared AFTER overdue. Closing account.");
+                        accountClosed = true;
+                    } else {
+                        System.out.println("Debt cleared within 30 days. Account stays open.");
+                        accountClosed = false;
+                    }
+
+                    negativeTimestamp = "";
+                    }
+            }
+
+                }
+
+    Files.move(temp, csvPath, StandardCopyOption.REPLACE_EXISTING);
+
+    if(accountClosed == true)
+    {
+        closeMoneyMarket(userID, MoneyID);
+    }
+    return accountPaid;
+}
+
+public boolean updateNegativeBalance() throws IOException {
+
+    LocalDate today = LocalDate.now();
+    boolean accountPaid = true;
+
+    Path temp = Files.createTempFile("temp", ".csv");
+
+    try (BufferedReader reader = Files.newBufferedReader(csvPath);
+         BufferedWriter writer = Files.newBufferedWriter(temp)) {
+
+        String line;
+        boolean found = false;
+
+        while ((line = reader.readLine()) != null) {
+
+            String[] data = line.split(",", -1);
+
+            if (data.length > 0 && data[0].equals(userID)) {
+                found = true;
+
+                double currentBalance = Double.parseDouble(data[2]);
+
+                boolean accountClosed = data.length > 6 && Boolean.parseBoolean(data[6]);
+                String negativeTimestamp = data.length > 7 ? data[7] : "";
+
+
+            
+                if (currentBalance < 0 && negativeTimestamp.isEmpty()) {
+                    negativeTimestamp = today.toString();
+                }
+
+            if (!negativeTimestamp.isEmpty()) {
+
+            }
+                if (currentBalance < 0 && !negativeTimestamp.isEmpty()) {
+
+                    LocalDate negativeDate = LocalDate.parse(negativeTimestamp);
+                    long days = ChronoUnit.DAYS.between(negativeDate, today);
+                                    
+                
+                    if (days >= 30) {
+                        System.out.println(
+                                "Account has been negative for 30+ days. Must repay before closure."
+                        );
+                        accountPaid = false;
+
+                    }
+                }
+
+                if (currentBalance >= 0 && !negativeTimestamp.isEmpty()) {
+
+                    LocalDate negativeDate = LocalDate.parse(negativeTimestamp);
+                    long days = ChronoUnit.DAYS.between(negativeDate, today);
+                    if (days >= 30) {
+                        System.out.println("Debt cleared AFTER overdue. Closing account.");
+                        accountClosed = true;
+                    } else {
+                        System.out.println("Debt cleared within 30 days. Account stays open.");
+                        accountClosed = false;
+                    }
+
+                    negativeTimestamp = "";
+                    }
+
+                            writer.write(String.join(",",
+                                    data[0], // userid
+                                    data[1], // MoneyMarketID
+                                    String.format("%.2f", currentBalance),
+                                    data[3], // DriversLicense
+                                    data[4], // datecreation
+                                    data[5], // birthCertificateID
+                                    String.valueOf(accountClosed),
+                                    negativeTimestamp
+                            ));
+
+                            writer.newLine();
+                            continue;
+                        }
+
+                        writer.write(line);
+                        writer.newLine();
+                    }
+
+                }
+
+    Files.move(temp, csvPath, StandardCopyOption.REPLACE_EXISTING);
+
+    if(accountClosed == true)
+    {
+        closeMoneyMarket(userID, MoneyID);
+    }
+    return accountPaid;
+}
     public static boolean birthCertificateExists(String BCID, boolean isEmployee) throws IOException{ //Generate a unique birth certificate ID. No same ID distributed.
         Path Csvchoice;
         if(isEmployee){
@@ -831,7 +1091,7 @@ public static boolean birthCertificate(String userID) throws IOException {
     String line;
     while((line = read.readLine())!= null)
     {
-        String[] data = line.split(",");
+        String[] data = line.split(",", -1);
         if(data[0].trim().equals(MoneyID))
         {
             String lastMinMonth = data.length > 1 ? data[1] : "";
@@ -1186,10 +1446,9 @@ public double minBalanceFee() throws IOException { //Min month goal is to write 
 
         String line;
         while ((line = reader.readLine()) != null) {
-            String[] data = line.split(",");
+            String[] data = line.split(",", -1);
 
             if (data[0].equals(MoneyID)) {
-                found = true;
 
                 // Retrieve previous CSV data safely
                 String lastMinMonth = data.length > 1 ? data[1] : "";
@@ -1231,20 +1490,6 @@ public double minBalanceFee() throws IOException { //Min month goal is to write 
             writer.write(line);
             writer.newLine();
         }
-
-        //if nothing was found.
-        if (!found) {
-            writer.write(String.join(",",
-                    MoneyID,
-                    currentMonth,
-                    "",
-                    String.format("%.2f",balance),
-                    "",
-                    "",
-                    ""
-            ));
-            writer.newLine();
-        }
     }
 
     //replace old CSV with updated temp file.
@@ -1253,8 +1498,7 @@ public double minBalanceFee() throws IOException { //Min month goal is to write 
 }
 
 public double monthlyFee() throws IOException { 
-    LocalDate today = LocalDate.now();
-    String currentMonth = today.getYear() + "-" + String.format("%02d", today.getMonthValue());
+    YearMonth currentMonth = YearMonth.now();
 
     Path tempfile = Files.createTempFile("csv_temp", ".csv");
     boolean found = false;
@@ -1276,12 +1520,19 @@ public double monthlyFee() throws IOException {
                 String lastInterest = data.length > 5 ? data[5] : "";
                 double withdrawlimit = data.length > 6 ? Double.parseDouble(data[6]) : currentwithdraw;
 
-                // Apply monthly fee if a month has passed
-                if (!lastMonthlyMonth.isEmpty() && !currentMonth.equals(lastMonthlyMonth)) {
-                    balance -= monthlyFee;
-                    writeMoneyCSV(userID, MoneyID, balance);
+                YearMonth lastMonth;
+                try{
+                    lastMonth = (lastMonthlyMonth == null || lastMonthlyMonth.isEmpty()) ? currentMonth : YearMonth.parse(lastMonthlyMonth);
+                }catch(Exception e){
+                    lastMonth = currentMonth;
                 }
-                lastMonthlyMonth = currentMonth;
+                long monthsMissed = ChronoUnit.MONTHS.between(lastMonth, currentMonth);
+                // Apply monthly fee if a month has passed
+                if (monthsMissed > 0) {
+                    balance -= monthlyFee * monthsMissed;
+                    balance = currentBalance;
+                    lastInterest = currentMonth.toString();
+                }
 
                 writer.write(String.join(",", //rewrite all data such as last min month and so on.
                         MoneyID,
@@ -1299,20 +1550,6 @@ public double monthlyFee() throws IOException {
             writer.write(line);
             writer.newLine();
         }
-
-        // First time entry
-        if (!found) {
-            writer.write(String.join(",",
-                    MoneyID,
-                    "",
-                    currentMonth,
-                    String.format("%.2f",balance),
-                    "",
-                    "",
-                    ""
-            ));
-            writer.newLine();
-        }
     }
 
     Files.move(tempfile, csvPathFee, StandardCopyOption.REPLACE_EXISTING);
@@ -1323,17 +1560,15 @@ public double yearlyFee() throws IOException { //every year passing the user get
     String currentYear = String.valueOf(LocalDate.now().getYear());
 
     Path temp = Files.createTempFile("temp", ".csv");
-    boolean found = false;
 
     try (BufferedReader reader = Files.newBufferedReader(csvPathFee);
          BufferedWriter writer = Files.newBufferedWriter(temp)) {
 
         String line;
         while ((line = reader.readLine()) != null) {
-            String[] data = line.split(",");
+            String[] data = line.split(",", -1);
 
             if (data[0].equals(MoneyID)) {
-                found = true;
 
                 String lastMinMonth = data.length > 1 ? data[1] : "";
                 String lastMonthlyMonth = data.length > 2 ? data[2] : "";
@@ -1342,14 +1577,18 @@ public double yearlyFee() throws IOException { //every year passing the user get
                 String lastInterest = data.length > 5 ? data[5] : "";
                 double withdrawlimit = data.length > 6 ? Double.parseDouble(data[6]) : currentwithdraw;
                 
-
+                if(lastInterest == null || lastInterest.isEmpty()){
+                    lastInterest = currentYear.toString();
+                }
+                long YearsMissed = ChronoUnit.YEARS.between(Year.parse(lastYear.isEmpty() ? currentYear : lastYear), Year.parse(currentYear));
                 // Apply yearly fee if year has changed
-                if (!lastYear.isEmpty() && !lastYear.equals(currentYear)) {
+                if (YearsMissed > 0) {
                     balance -= yearlyFee;
                     writeMoneyCSV(userID, MoneyID, balance);
                 }
-                lastYear = currentYear;
-
+                if(lastYear.isEmpty() ){
+                    lastYear = currentYear;
+                }
                 writer.write(String.join(",",
                         MoneyID,
                         lastMinMonth != null ? lastMinMonth : "",
@@ -1367,18 +1606,6 @@ public double yearlyFee() throws IOException { //every year passing the user get
             writer.newLine();
         }
 
-        if (!found) {
-            writer.write(String.join(",",
-                    MoneyID,
-                    "",
-                    "",
-                    String.format("%.2f",balance),
-                    currentYear,
-                    "",
-                    ""
-            ));
-            writer.newLine();
-        }
     }
 
     Files.move(temp, csvPathFee, StandardCopyOption.REPLACE_EXISTING);
@@ -1389,7 +1616,6 @@ public double applyInterest() throws IOException { //apply interest over months
 
 
     Path temp = Files.createTempFile("temp", ".csv");
-    boolean found = false; //boolean logic so we can either create or update an existing data such as interest balance
 
     YearMonth currentMonth = YearMonth.now();
 
@@ -1409,7 +1635,9 @@ public double applyInterest() throws IOException { //apply interest over months
                 String lastYear = data.length > 4 ? data[4] : "";
                 String lastInterest = data.length > 5 ? data[5] : "";
                 double withdrawlimit = data.length > 6 ? Double.parseDouble(data[6]) : currentwithdraw;
-
+                if(lastInterest == null || lastInterest.isEmpty()){
+                    lastInterest = currentMonth.toString();
+                }
                 //Calculate the Interest by number of months that was missed and power that by the monthly interest rate.
                 YearMonth lastMonth;
                 try{
@@ -1435,7 +1663,6 @@ public double applyInterest() throws IOException { //apply interest over months
                         lastInterest,
                         String.format("%.0f", withdrawlimit)
                 ));
-                found = true;
                 writer.newLine();
                 continue;
             }
@@ -1444,19 +1671,6 @@ public double applyInterest() throws IOException { //apply interest over months
             writer.newLine();
         }
 
-        // First time entry
-        if (!found) {
-            writer.write(String.join(",",
-                    MoneyID,
-                    "",
-                    "",
-                    String.format("%.2f",balance),
-                    "",
-                    currentMonth.toString(),
-                    ""
-            ));
-            writer.newLine();
-        }
     }
 
     Files.move(temp, csvPathFee, StandardCopyOption.REPLACE_EXISTING);
