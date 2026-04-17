@@ -328,7 +328,7 @@ public class PersonalLoan {
 
     // ================= CSV SAVE FEATURE =================
     public void saveToCSV() {
-        String fileName = "loans.csv";
+        String fileName = "personalloan.csv";
         boolean fileExists = new java.io.File(fileName).exists();
 
         try (java.io.FileWriter writer = new java.io.FileWriter(fileName, true)) {
