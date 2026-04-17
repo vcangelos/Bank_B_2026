@@ -1,0 +1,2 @@
+txn_id,timestamp,from_currency,to_currency,original_amount,exchange_rate,fee_amount,net_converted,payout_method,dcc_applied
+TXN-D46D32CE,2026-03-27 08:23:40,USD,CAD,200.00,1.4250,10.00,262.87,Cash-Payout,YES
