@@ -1,28 +1,8 @@
 import java.time.LocalDate;
 import java.util.*;
+import java.io.*;
 
 public class TreasuryBondSystem {
-
-    // ================= ACCOUNT =================
-    static class CheckingAccount {
-        String id;
-        double balance;
-
-        CheckingAccount(String id, double balance) {
-            this.id = id;
-            this.balance = balance;
-        }
-    }
-
-    static class SavingsAccount {
-        String id;
-        double balance;
-
-        SavingsAccount(String id, double balance) {
-            this.id = id;
-            this.balance = balance;
-        }
-    }
 
     // ================= USER =================
     static class User {
@@ -46,6 +26,8 @@ public class TreasuryBondSystem {
         int years;
 
         LocalDate issueDate;
+        LocalDate lastPaymentDate;
+
         int paymentsMade = 0;
         boolean active = true;
 
@@ -77,36 +59,75 @@ public class TreasuryBondSystem {
             return (value * rate) / 2;
         }
 
+        LocalDate maturityDate() {
+            return issueDate.plusYears(years);
+        }
+
         void payInterest() {
+
             if (!active || paymentsMade >= years * 2) return;
 
+            if (lastPaymentDate != null &&
+                    lastPaymentDate.plusMonths(6).isAfter(LocalDate.now())) {
+                System.out.println("Interest not due yet.");
+                return;
+            }
+
+            double i = interest();
+
             if (fromChecking) {
-                checking.balance += interest();
+                checking.balance += i;
             } else {
-                savings.balance += interest();
+                savings.balance += i;
             }
 
             paymentsMade++;
+            lastPaymentDate = LocalDate.now();
+
+            System.out.println("Interest paid: $" + i);
         }
 
         void redeem() {
+
             if (!active) return;
 
-            if (LocalDate.now().isBefore(issueDate.plusYears(years))) return;
+            double payout = value;
+
+            if (LocalDate.now().isBefore(maturityDate())) {
+                double penalty = value * 0.10;
+                payout -= penalty;
+                System.out.println("Early redemption penalty: -$" + penalty);
+            }
 
             if (fromChecking) {
-                checking.balance += value;
+                checking.balance += payout;
             } else {
-                savings.balance += value;
+                savings.balance += payout;
             }
 
             active = false;
+            System.out.println("Bond redeemed: $" + payout);
+        }
+
+        public String toString() {
+            return "ID: " + id +
+                    " | $" + value +
+                    " | Rate: " + (rate * 100) + "%" +
+                    " | Payments: " + paymentsMade +
+                    " | Matures: " + maturityDate() +
+                    " | Active: " + active;
+        }
+
+        public String toCSV() {
+            return id + "," + value + "," + rate + "," + years + "," +
+                    issueDate + "," + paymentsMade + "," + active;
         }
     }
 
-    // ================= BANK OPERATIONS =================
+    // ================= OPERATIONS =================
 
-    public static void buyBond(User user, boolean useChecking, double amount, double rate, int years) {
+    public static void buyBond(User user, boolean useChecking,
+                               double amount, double rate, int years) {
 
         if (useChecking) {
 
@@ -134,13 +155,40 @@ public class TreasuryBondSystem {
         for (Bond b : user.bonds) {
             b.payInterest();
         }
-        System.out.println("Interest processed.");
     }
 
     public static void redeem(User user) {
         for (Bond b : user.bonds) {
             b.redeem();
         }
-        System.out.println("Redemption checked.");
+
+        user.bonds.removeIf(b -> !b.active);
+    }
+
+    public static void showBonds(User user) {
+        if (user.bonds.isEmpty()) {
+            System.out.println("No bonds owned.");
+            return;
+        }
+
+        for (Bond b : user.bonds) {
+            System.out.println(b);
+        }
+    }
+
+    public static void saveBonds(User user, String file) {
+        try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
+
+            pw.println("ID,Value,Rate,Years,IssueDate,Payments,Active");
+
+            for (Bond b : user.bonds) {
+                pw.println(b.toCSV());
+            }
+
+            System.out.println("Bonds saved to CSV.");
+
+        } catch (Exception e) {
+            System.out.println("Error saving file.");
+        }
     }
 }
