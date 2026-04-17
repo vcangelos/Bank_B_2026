@@ -13,7 +13,8 @@ import java.nio.file.Path; //This function is used to find the file you want for
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption; //we don't want to overwrite when we create a savings ID account we want to append.
 import java.io.BufferedReader; //is used to read line by line
-
+import java.time.temporal.ChronoUnit;
+import java.time.*;
 import java.time.LocalDate;
 
 public class SavingsAccount {
@@ -77,12 +78,14 @@ public class SavingsAccount {
     * CHECK IF THE USER HAS A SAVINGS ACCOUNT THE RETURN FUNCTION WILL BE THE FINAL
     * SIGNAL, use this inside createSavings or existingSavings
     */
-   public static boolean userIDExists(String userID) throws IOException { //hasSavings or user ID //lets use this as a chance to create a boolean employee.
-       try (BufferedReader reader = Files.newBufferedReader(csvPath)) {
+public static boolean userIDExists(String userID) throws IOException { //hasMoney or user ID //lets use this as a chance to create a boolean employee.
+        Path csvEmployeeornot = isEmployee(userID) ? csvEmployeesavingscsv : csvPath;
+        
+        try (BufferedReader reader = Files.newBufferedReader(csvEmployeeornot)) {
            reader.readLine(); //skip the header
            String line; //String line not initialized yet
            while ((line = reader.readLine()) != null) {
-               String[] columnsplit = line.split(","); //split line into 3 columns instead of one huge string because we don't want that.
+               String[] columnsplit = line.split(",",-1); //split line into 3 columns instead of one huge string because we don't want that.
                if (columnsplit.length > 0 && columnsplit[0].trim().equals(userID.trim())) { //trim is useful for comparing data when white space exists what it does is removes those white spaces.
                    return true; //return true because userID exists
                }
@@ -90,25 +93,30 @@ public class SavingsAccount {
        }
        return false;
    }
-    public static boolean employeeIDExists(String userID) throws IOException { //checkifSavingsIDexist
-       try (BufferedReader reader = Files.newBufferedReader(csvEmployeesavingscsv)) {
-           reader.readLine(); //skip the header
-           String line; //String line not initialized yet
-           while ((line = reader.readLine()) != null) {
-               String[] columnsplit = line.split(","); //split line into 3 columns instead of one huge string because we don't want that.
-               if (columnsplit.length > 0 && columnsplit[0].trim().equals(userID.trim())) { //trim is useful for comparing data when white space exists what it does is removes those white spaces.
-                   return true; //return true if it is equal to the employee id
-               }
-           }
-       }
-       return false;
+    public static boolean isEmployee(String EmployeeID) throws IOException{ //This method checks if there is the userID in employee.csv if that appears there then this is an employee MoneyMarket account.
+       try (BufferedReader reader = Files.newBufferedReader(csvEmployeecsv)) {
+       reader.readLine(); // skip header
+       String line;
+       while ((line = reader.readLine()) != null) {
+           ArrayList<String> data = csvParsing.parseLine(line);
+            if(line.trim().isEmpty())
+            {
+                continue;
+            }
+   
+            if (data.size() > 0 && data.get(0).equals(EmployeeID)) { //read column 0 and lines that match with the employeeID
+            return true;
+            }
+        } 
+    }
+   return false; // not found
    }
     public static boolean SavingsIDExistsfeefile(String SavingsID) throws IOException {
     try (BufferedReader reader = Files.newBufferedReader(csvPathFee)) {
        reader.readLine(); // skip header
        String line;
        while ((line = reader.readLine()) != null) {
-           String[] columnsplit = line.split(",");
+           String[] columnsplit = line.split(",", -1);
            if (columnsplit.length == 0) continue; // skip malformed lines
            if (columnsplit[0].trim().equals(SavingsID.trim())) {
                return true; // userID found
@@ -126,7 +134,7 @@ public class SavingsAccount {
         try(BufferedReader read = Files.newBufferedReader(csvPath); BufferedWriter writetemp = Files.newBufferedWriter(temp)){
             String line;
             while((line = read.readLine()) != null){
-                String[] datacur = line.split(",");
+                String[] datacur = line.split(",", -1);
                 if(datacur[0].trim().equals(userID)){
                     
                     datacur[2] = String.valueOf(newbalance);
@@ -146,7 +154,7 @@ public class SavingsAccount {
         try(BufferedReader read = Files.newBufferedReader(csvEmployeesavingscsv); BufferedWriter writetemp = Files.newBufferedWriter(temp)){
             String line;
             while((line = read.readLine()) != null){
-                String[] datacur = line.split(",");
+                String[] datacur = line.split(",", -1);
                 if(datacur[0].trim().equals(userID)){
                     
                     datacur[2] = String.valueOf(newbalance);
@@ -238,7 +246,11 @@ public class SavingsAccount {
     return accounts;
    }
    public static SavingsAccount createSavingsAccount(String userID, double savingsamount) throws IOException {//
-
+            if(MoneyMarketamount <= 0 || userID == null || userID.isEmpty())
+            {
+                System.out.println("Error: Type a proper amount.");
+                return null;
+            }
            String SavingsID = RandomIDGenerator();
            SavingsAccount account = null; //added null so nothing bad can happen such as unitialization.
            if (savingsamount == minimumbalance) {
@@ -270,9 +282,9 @@ public class SavingsAccount {
            writeCustomerinfo(account.hasSavings, account.getuserID());
            return account;
    }
-   public static List<SavingsAccount> OpenSavingsAccount(String userID) throws IOException{
+   public static SavingsAccount OpenSavingsAccount(String userID) throws IOException{
     if(userIDExists(userID))
-    {   List<SavingsAccount> acc = new ArrayList<>();
+    { 
         try(BufferedReader readlines = Files.newBufferedReader(csvPath)){
             
             readlines.readLine();
@@ -285,7 +297,7 @@ public class SavingsAccount {
                     account.userID = userID;
                     account.savingsbalance = Double.parseDouble(currentdata[2]);
                     account.SavingsID = currentdata[1];
-                    account.isEmployee = employeeIDExists(userID);
+                    account.isEmployee = isEmployee(userID);
                     acc.add(account);
                 }
                 
@@ -319,7 +331,7 @@ public class SavingsAccount {
            String line;
            while ((line = reader.readLine()) != null) { // as line doesn't equal to NULL (end of file) continue.
                String[] currentdata_to_col = line.split(",", -1);
-               if (currentdata_to_col.length > 0 && currentdata_to_col[1].equals(SavingsID)) {
+               if (currentdata_to_col.length > 1 && currentdata_to_col[1].equals(SavingsID)) {
                    return true;
                }
            }
@@ -358,20 +370,20 @@ public class SavingsAccount {
    // ************Withdraw system**************/
    public boolean withdrawSavings(double amt) // withdraw system that records the amount. //right now this isn't use in the code at all.
    {
-    if(amt <= 0 )
+    if(amt < 0 )
     {
         System.out.println("Account can't be less than or equal to 0, so please choose a higher value.");
         return false;
     }
-    if(amt <= savingsbalance)
+    if(amt > savingsbalance)
     {
-        savingsbalance -= amt;
         
-        return true;
+        return false; // deny negative withdraw
     }
     else{
+        savingsbalance -= amt;
         System.out.println("Insufficient funds.");
-        return false;
+        return true;
     }
     
    }
@@ -656,18 +668,16 @@ public double minBalanceFee() throws IOException { //Min month goal is to write 
     String currentMonth = today.getYear() + "-" + String.format("%02d", today.getMonthValue());
 
     Path temp = Files.createTempFile("temp", ".csv");
-    boolean found = false;
+
 
     try (BufferedReader reader = Files.newBufferedReader(csvPathFee);
          BufferedWriter writer = Files.newBufferedWriter(temp)) {
 
         String line;
         while ((line = reader.readLine()) != null) {
-            String[] data = line.split(",");
+            String[] data = line.split(",", -1);
 
             if (data[0].equals(SavingsID)) {
-                found = true;
-
                 // Retrieve previous CSV data safely
                 String lastMinMonth = data.length > 1 ? data[1] : "";
                 String lastMonthlyMonth = data.length > 2 ? data[2] : "";
@@ -706,19 +716,6 @@ public double minBalanceFee() throws IOException { //Min month goal is to write 
             writer.write(line);
             writer.newLine();
         }
-
-        //if nothing was found.
-        if (!found) {
-            writer.write(String.join(",",
-                    SavingsID,
-                    currentMonth,
-                    "",
-                    String.format("%.2f",savingsbalance),
-                    "",
-                    ""
-            ));
-            writer.newLine();
-        }
     }
 
     //replace old CSV with updated temp file.
@@ -731,14 +728,13 @@ public double monthlyFee() throws IOException {
     String currentMonth = today.getYear() + "-" + String.format("%02d", today.getMonthValue());
 
     Path tempfile = Files.createTempFile("csv_temp", ".csv");
-    boolean found = false;
 
     try (BufferedReader reader = Files.newBufferedReader(csvPathFee);
          BufferedWriter writer = Files.newBufferedWriter(tempfile)) {
 
         String line;
         while ((line = reader.readLine()) != null) {
-            String[] data = line.split(",");
+            String[] data = line.split(",", -1);
             if (data[0].trim().equals(SavingsID)) {
                 found = true;
 
@@ -771,21 +767,7 @@ public double monthlyFee() throws IOException {
             writer.write(line);
             writer.newLine();
         }
-
-        // First time entry
-        if (!found) {
-            writer.write(String.join(",",
-                    SavingsID,
-                    "",
-                    currentMonth,
-                    String.format("%.2f",savingsbalance),
-                    "",
-                    ""
-            ));
-            writer.newLine();
-        }
     }
-
     Files.move(tempfile, csvPathFee, StandardCopyOption.REPLACE_EXISTING);
     return savingsbalance;
 }
@@ -794,17 +776,15 @@ public double yearlyFee() throws IOException { //every year passing the user get
     String currentYear = String.valueOf(LocalDate.now().getYear());
 
     Path temp = Files.createTempFile("temp", ".csv");
-    boolean found = false;
 
     try (BufferedReader reader = Files.newBufferedReader(csvPathFee);
          BufferedWriter writer = Files.newBufferedWriter(temp)) {
 
         String line;
         while ((line = reader.readLine()) != null) {
-            String[] data = line.split(",");
+            String[] data = line.split(",", -1);
 
             if (data[0].equals(SavingsID)) {
-                found = true;
 
                 String lastMinMonth = data.length > 1 ? data[1] : "";
                 String lastMonthlyMonth = data.length > 2 ? data[2] : "";
@@ -834,18 +814,6 @@ public double yearlyFee() throws IOException { //every year passing the user get
             writer.write(line);
             writer.newLine();
         }
-
-        if (!found) {
-            writer.write(String.join(",",
-                    SavingsID,
-                    "",
-                    "",
-                    String.format("%.2f",savingsbalance),
-                    currentYear,
-                    ""
-            ));
-            writer.newLine();
-        }
     }
 
     Files.move(temp, csvPathFee, StandardCopyOption.REPLACE_EXISTING);
@@ -853,44 +821,57 @@ public double yearlyFee() throws IOException { //every year passing the user get
 }
 
 public double applyInterest() throws IOException { //apply interest over months
-    LocalDate today = LocalDate.now(); //grab todays date so we can compare it with last month
-    String currentMonth = today.getYear() + "-" + String.format("%02d", today.getMonthValue());
 
+    YearMonth currentMonth = YearMonth.now();
     Path temp = Files.createTempFile("temp", ".csv");
-    boolean found = false; //boolean logic so we can either create or update an existing data such as interest balance
 
     try (BufferedReader reader = Files.newBufferedReader(csvPathFee);
          BufferedWriter writer = Files.newBufferedWriter(temp)) {
 
         String line;
         while ((line = reader.readLine()) != null) {
-            String[] data = line.split(",");
+            String[] data = line.split(",", -1);
 
             if (data[0].equals(SavingsID)) {
-                found = true;
 
                 String lastMinMonth = data.length > 1 ? data[1] : ""; 
                 String lastMonthlyMonth = data.length > 2 ? data[2] : "";
                 double currentBalance = data.length > 3 ? Double.parseDouble(data[3]) : savingsbalance;
                 String lastYear = data.length > 4 ? data[4] : "";
                 String lastInterest = data.length > 5 ? data[5] : "";
-
-                //Interest is applied via month and savings is written to savings csv so it can be written overtime
-                if (!lastInterest.isEmpty() && !lastInterest.equals(currentMonth)) {
-                    double monthlyRate = interestamount / 12.0; //interest amount.
-                    savingsbalance += savingsbalance * monthlyRate;
-                    currentBalance = savingsbalance;
-                    System.out.println("p");
-                    writeSavingsCSV(userID, SavingsID, currentBalance);
+                
+                if(lastInterest.isEmpty()){ //if the last interest is empty then make it todays date but to string.
+                lastInterest = currentMonth.toString();
                 }
-                lastInterest = currentMonth;
+                
+                YearMonth lastMonth;
+                try{
+                lastMonth = (lastInterest == null || lastInterest.isEmpty()) ? currentMonth : YearMonth.parse(lastInterest);
+                }catch(Exception e){
+                lastMonth = currentMonth;
+                }
+                long monthsMissed = ChronoUnit.MONTHS.between(lastMonth, currentMonth);
+                //Interest is applied via month and savings is written to savings csv so it can be written overtime
+                
+                // Use LocalDate for day-to-day precision
+                LocalDate today = LocalDate.now();
+                LocalDate lastRun = LocalDate.parse(lastInterest); // lastInterest should be a full date like "2023-10-01"
 
+                long daysMissed = ChronoUnit.DAYS.between(lastRun, today);
+
+                if (daysMissed > 0) {
+                //1. Calculate the daily periodic rate (assuming interestamount is like 0.05 for 5%)
+                double dailyRate = interestamount / 365.0;
+                currentBalance = currentBalance * Math.pow(1 + dailyRate, daysMissed);
+    
+                lastInterest = today.toString(); 
+                }
                 writer.write(String.join(",",
                         SavingsID,
-                        lastMinMonth != null ? lastMinMonth : "",
-                        lastMonthlyMonth != null ? lastMonthlyMonth : "",
+                        lastMinMonth,
+                        lastMonthlyMonth,
                         String.format("%.2f",currentBalance),
-                        lastYear != null ? lastYear : "",
+                        lastYear,
                         lastInterest
                 ));
                 writer.newLine();
@@ -898,19 +879,6 @@ public double applyInterest() throws IOException { //apply interest over months
             }
 
             writer.write(line);
-            writer.newLine();
-        }
-
-        // First time entry
-        if (!found) {
-            writer.write(String.join(",",
-                    SavingsID,
-                    "",
-                    "",
-                    String.format("%.2f",savingsbalance),
-                    "",
-                    currentMonth
-            ));
             writer.newLine();
         }
     }
