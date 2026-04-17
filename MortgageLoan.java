@@ -98,11 +98,9 @@ public class MortgageLoan {
         System.out.print("Enter down payment: ");
         double downPayment = scanner.nextDouble();
 
-        System.out.print("Enter credit score: ");
-        int creditScore = scanner.nextInt();
-
-        System.out.print("Good credit history? (true/false): ");
-        boolean history = scanner.nextBoolean();
+        CreditCard card = new CreditCard();
+   int creditScore = card.getCreditScore();
+boolean history = card.getMissedPayments() == 0;
 
         System.out.print("Monthly income: ");
         double income = scanner.nextDouble();
