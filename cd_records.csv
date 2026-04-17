@@ -1,2 +1,2 @@
 cdID,customerID,principal,interestRate,termMonths,startDate,maturityDate,isMatured,isClosed
-CD000001,1001,5000.00,0.05,36,2026-03-26,2029-0Cd
+CD000001,1001,5000.00,0.050000,36,2026-03-26,2029-03-26,false,false
