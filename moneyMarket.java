@@ -52,6 +52,7 @@ public class moneyMarket {
     private static final Path csvCustomerInfo = Path.of("customerinfo.csv");
     private static final Path csvEmployeecsv= Path.of("employeecards.csv");
     private static final Path csvEmployeeMoneyMarketcsv= Path.of("EmployeeMoneyMarket.csv");
+    private static final Path isEmployeeCSV = isEmployee ? csvEmployeeMoneyMarketcsv : csvPath;
 
     private static final long MAX = 599_999_999_999L; // This is the maximum for the MoneyMarket number generator 3000000000000 is MoneyMarket Account UNIQUE ID this is only for MoneyMarket.
                                                      
@@ -112,7 +113,7 @@ public class moneyMarket {
            reader.readLine(); //skip the header
            String line; //String line not initialized yet
            while ((line = reader.readLine()) != null) {
-               String[] columnsplit = line.split(","); //split line into 3 columns instead of one huge string because we don't want that.
+               String[] columnsplit = line.split(",",-1); //split line into 3 columns instead of one huge string because we don't want that.
                if (columnsplit.length > 0 && columnsplit[0].trim().equals(userID.trim())) { //trim is useful for comparing data when white space exists what it does is removes those white spaces.
                    return true; //return true because userID exists
                }
@@ -120,41 +121,29 @@ public class moneyMarket {
        }
        return false;
    }
-    public static boolean employeeIDExists(String userID) throws IOException { //checkifMoneyIDexist
-       try (BufferedReader reader = Files.newBufferedReader(csvEmployeeMoneyMarketcsv)) {
-           reader.readLine(); //skip the header
-           String line; //String line not initialized yet
-           while ((line = reader.readLine()) != null) {
-               String[] columnsplit = line.split(","); //split line into 3 columns instead of one huge string because we don't want that.
-               if (columnsplit.length > 0 && columnsplit[0].trim().equals(userID.trim())) { //trim is useful for comparing data when white space exists what it does is removes those white spaces.
-                   return true; //return true if it is equal to the employee id
-               }
-           }
-       }
-       return false;
-   }
-    public static boolean MoneyMarketIDExistsfeefile(String MoneyID) throws IOException {
+    public static boolean MoneyMarketIDExistsfeefile(String MoneyID) throws IOException { //USE MONEY ID no userid because user chooses the moneyid during creation or load and all moneyid are unique meaning the reason we just used moneyid because either it is loaded or during id creation
     try (BufferedReader reader = Files.newBufferedReader(csvPathFee)) {
        reader.readLine(); // skip header
        String line;
        while ((line = reader.readLine()) != null) {
-           String[] columnsplit = line.split(",");
+           String[] columnsplit = line.split(",",-1);
            if (columnsplit.length == 0) continue; // skip malformed lines
            if (columnsplit[0].trim().equals(MoneyID.trim())) {
-               return true; // userID found
+               return true; // moneyID found
            }
        }
    }
    return false; // not found
    }
 
-   public static void writeMoneyCSV(String userID, String MoneyID, double newbalance) throws IOException //make a automatic writing system.
+   public static void writeMoneyCSV(String userID, String MoneyID, double newbalance, boolean isEmployee) throws IOException //make an employee or moneymarket system.
    {
+        Path isEmployeeCSV = isEmployee ? csvEmployeeMoneyMarketcsv : csvPath;
         Path temp = Files.createTempFile("temp", ".csv");
-        try(BufferedReader read = Files.newBufferedReader(csvPath); BufferedWriter writetemp = Files.newBufferedWriter(temp)){
+        try(BufferedReader read = Files.newBufferedReader(isEmployeeCSV); BufferedWriter writetemp = Files.newBufferedWriter(temp)){
             String line;
             while((line = read.readLine()) != null){
-                String[] datacur = line.split(",");
+                String[] datacur = line.split(",",-1);
                 if(datacur[0].trim().equals(userID) && datacur[1].trim().equals(MoneyID)){
                     
                     datacur[2] = String.valueOf(newbalance);
@@ -166,41 +155,8 @@ public class moneyMarket {
                 writetemp.newLine();
             }
         }
-        Files.move(temp, csvPath, StandardCopyOption.REPLACE_EXISTING);
+        Files.move(temp, isEmployeeCSV, StandardCopyOption.REPLACE_EXISTING);
    }
-
-   public void pick_Employee_Or_User() throws IOException{
-
-        if(isEmployee)
-        {
-            writeEmployeeMoneyMarketCSV(getuserID(), getMoneyID(), getMoneyMarket());
-        }
-        else{
-            writeMoneyCSV(getuserID(), getMoneyID(), getMoneyMarket());
-        }
-   }
-
-   public static void writeEmployeeMoneyMarketCSV(String userID, String MoneyID, double newbalance) throws IOException //make a automatic writing system.
-   {
-        Path temp = Files.createTempFile("temp", ".csv");
-        try(BufferedReader read = Files.newBufferedReader(csvEmployeeMoneyMarketcsv); BufferedWriter writetemp = Files.newBufferedWriter(temp)){
-            String line;
-            while((line = read.readLine()) != null){
-                String[] datacur = line.split(",");
-                if(datacur[0].trim().equals(userID) && datacur[1].equals(MoneyID)){
-                    
-                    datacur[2] = String.valueOf(newbalance);
-                    writetemp.write(String.join(",", datacur));
-                }
-                else{
-                    writetemp.write(line);
-                }
-                writetemp.newLine();
-            }
-        }
-        Files.move(temp, csvEmployeeMoneyMarketcsv, StandardCopyOption.REPLACE_EXISTING);
-   }
-
    //under here is a customerinfo read for last name in customer info.
    public static char ReadCustomerinfolastnamechar(int column, String userID) throws IOException
      {    
@@ -1137,7 +1093,7 @@ public static boolean birthCertificate(String userID) throws IOException {
             }
 
             if (successfulWithdraw) {
-                pick_Employee_Or_User();
+                write
                 writer.write(String.join(",",
                         MoneyID,
                         lastMinMonth,
@@ -1165,7 +1121,7 @@ public static boolean birthCertificate(String userID) throws IOException {
     
    }
 
- /*public double transfer(List<CheckingAccount.Account> possibleDestinations, Scanner scanner, boolean transfer, double value){ //we used list for checking account because there is multiple OR one checking account per user. USE VALUE ONLY IF IT'S OUTSIDE CHECKING ACCOUNT TRANSFER FOR EXAMPLE loans to savings.
+ public double transfer(List<CheckingAccount.Account> possibleDestinations, Scanner scanner, boolean transfer, double value){ //we used list for checking account because there is multiple OR one checking account per user. USE VALUE ONLY IF IT'S OUTSIDE CHECKING ACCOUNT TRANSFER FOR EXAMPLE loans to savings.
     //transfer true from source -> savings
     if(transfer == true){
         if(possibleDestinations != null)  //if not null then transfer with checking otherwise swap defaultly
@@ -1411,7 +1367,7 @@ System.out.printf("New balances -> %s: $%.2f | %s: $%.2f%n",
     }
     return value;
     }
-    }*/
+    }*
 
 public void printTransactionHistory() {
     System.out.println("Transaction History for " + this.userID + ":");
@@ -1426,7 +1382,7 @@ public void printTransactionHistory() {
         minBalanceFee();
         yearlyFee();
         monthlyFee();
-        pick_Employee_Or_User();
+        writeMoneyCSV(userID,MoneyID, balance, isEmployee);
         applyInterest();
     }
 // ************ FEES AND INTEREST METHODS ************
@@ -1462,7 +1418,7 @@ public double minBalanceFee() throws IOException { //Min month goal is to write 
                 if (lastMinMonth != null && !lastMinMonth.isEmpty() && !lastMinMonth.equals(currentMonth)) {
                     if (balance < minimumbalance) {
                         balance -= minBalanceFee;
-                        writeMoneyCSV(userID, MoneyID, balance);
+                        writeMoneyCSV(userID, MoneyID, balance, isEmployee);
                     }
                     lastMinMonth = currentMonth;
                     currentBalance = balance;
