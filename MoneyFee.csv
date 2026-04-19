@@ -1,2 +1,1 @@
-MoneyID,lastMinFeeMonth,lastMonthlyFeeMonth,CurrentBalance,lastYearlyFeeYear,lastInterest,lastNegativeDate,withdraw
-522364831452,2026-04,2026-04,3000.01,2026,,,0
+MoneyID,lastMinFeeMonth,lastMonthlyFeeMonth,lastYearlyFeeYear,lastInterest,withdraw,withdrawMonth
