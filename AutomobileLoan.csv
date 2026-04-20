@@ -1,0 +1,1 @@
+loanID,customerID,customerName,carMake,carModel,carYear,carCondition,vehiclePrice,downPayment,principal,interestRate,termMonths,monthlyPayment,remainingBalance,totalPaid,paymentsMade,missedPayments,delinquency,status,autoPayEnabled,creditScore,startDate
