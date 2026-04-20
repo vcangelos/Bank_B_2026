@@ -11,7 +11,6 @@ public class CommercialLoan{
     private String businessName;
     private String[] addressOfBusiness;
     private boolean proceedToApproval;
-
     public static ArrayList<CommercialLoan> commercialLoans = new ArrayList<>();
     
     public CommercialLoan() {
@@ -46,7 +45,15 @@ public class CommercialLoan{
         System.out.print(" Zip Code: ");
         String zipCode = scanner.nextLine();
         this.addressOfBusiness = new String[]{street, city, state, zipCode};
-
+        System.out.println("Loan application submitted for " + businessName);
+        if (creditScore >= 680 && !anyPastLoans) {
+            this.proceedToApproval = true;
+            System.out.println("Loan application is approved based on credit score and past loan history. Proceeding to approval process.");
+        } else {
+            this.proceedToApproval = false;
+            System.out.println("Loan application is not eligible for approval based on credit score and past loan history.");
+        }
+        saveLoanInformation();
         scanner.close();
     }
     public CommercialLoan(double loanAmount, double interestRate, int loanTerm) {
@@ -59,6 +66,7 @@ public class CommercialLoan{
     public CommercialLoan(String loanNumber, double loanAmount, double interestRate, int loanTerm) {
         this.loanNumber = loanNumber;
         this.loanAmount = loanAmount;
+        this.interestRate = interestRate;
         this.loanTerm = loanTerm;
     }
     private static String randomLoanNumber() {
@@ -132,6 +140,15 @@ public class CommercialLoan{
             System.out.println("Payment of $" + paymentAmount + " made. Remaining balance: $" + loanAmount);
         } else {
             System.out.println("Payment amount is less than the required monthly payment of $" + monthlyPayment);
+        }
+    }
+
+    public void saveLoanInformation() {
+        CommercialLoanWriter writer = new CommercialLoanWriter();
+        try {
+            writer.saveLoanInformation(this);
+        } catch (Exception e) {
+            System.out.println("Error occurred saving loan information: " + e.getMessage());
         }
     }
 }
