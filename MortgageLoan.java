@@ -1,187 +1,408 @@
 import java.io.*;
+import java.time.LocalDate;
 import java.util.*;
 
 public class MortgageLoan {
 
-    // ===== ENUMS =====
-    enum LoanType {
-        FIXED,
-        ARM
-    }
+    // =========================
+    // MODEL
+    // =========================
+    static class Mortgage {
 
-    enum LoanTerm {
-        FIXED_30,
-        FIXED_20,
-        FIXED_15,
-        ARM_5_1,
-        ARM_5_6,
-        ARM_7_1,
-        ARM_7_6,
-        ARM_10_1,
-        ARM_10_6
-    }
+        String loanID;
+        String userID;
 
-    // ===== INTEREST RATE STORAGE (CSV) =====
-    static Map<LoanTerm, Double> rates = new HashMap<>();
+        double propertyValue;
+        double downPayment;
+        double principal;
+        double balance;
 
-    public static void loadRatesFromCSV(String fileName) {
-        try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+        double interestRate;
+        int termMonths;
 
-            String line;
+        double propertyTaxRate;
+        double insuranceRate;
+        double escrowBalance;
 
-            br.readLine(); 
-            
-            while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",");
+        LocalDate createdDate;
+        LocalDate nextDueDate;
 
-                LoanTerm term = LoanTerm.valueOf(parts[0]);
-                double rate = Double.parseDouble(parts[1]);
+        double monthlyPrincipal;
+        double monthlyEscrow;
 
-                rates.put(term, rate);
+        int missedPayments;
+        String status;
+        String delinquency;
+
+        Mortgage(String userID,
+                 double propertyValue,
+                 double downPayment,
+                 double interestRate,
+                 int termMonths,
+                 double taxRate,
+                 double insuranceRate) {
+
+            this.loanID = "MTG-" + UUID.randomUUID().toString().substring(0, 8);
+            this.userID = userID;
+
+            this.propertyValue = propertyValue;
+            this.downPayment = downPayment;
+
+            this.principal = propertyValue - downPayment;
+            this.balance = principal;
+
+            this.interestRate = interestRate;
+            this.termMonths = termMonths;
+
+            this.propertyTaxRate = taxRate;
+            this.insuranceRate = insuranceRate;
+
+            this.createdDate = LocalDate.now();
+            this.nextDueDate = LocalDate.now().plusMonths(1);
+
+            this.monthlyPrincipal = calcMonthly();
+            this.monthlyEscrow = calcEscrow();
+
+            this.escrowBalance = 0;
+            this.missedPayments = 0;
+
+            this.status = "ACTIVE";
+            this.delinquency = "CURRENT";
+        }
+
+        double calcMonthly() {
+            double r = interestRate / 12.0;
+            return (principal * r) / (1 - Math.pow(1 + r, -termMonths));
+        }
+
+        double calcEscrow() {
+            return (propertyValue * propertyTaxRate) / 12.0
+                 + (propertyValue * insuranceRate) / 12.0;
+        }
+
+        double totalDue() {
+            return monthlyPrincipal + monthlyEscrow;
+        }
+
+        void update() {
+
+            LocalDate today = LocalDate.now();
+
+            while (today.isAfter(nextDueDate)) {
+
+                double r = interestRate / 12.0;
+
+                balance += balance * r;
+                balance += monthlyPrincipal;
+
+                escrowBalance += monthlyEscrow;
+
+                missedPayments++;
+                nextDueDate = nextDueDate.plusMonths(1);
             }
 
-        } catch (Exception e) {
-            System.out.println("Error loading rates: " + e.getMessage());
+            updateStatus();
+        }
+
+        void updateStatus() {
+            if (missedPayments >= 3) delinquency = "90_DAYS_LATE";
+            else if (missedPayments == 2) delinquency = "60_DAYS_LATE";
+            else if (missedPayments == 1) delinquency = "30_DAYS_LATE";
+            else delinquency = "CURRENT";
+        }
+
+        void pay(double amount,
+                 SavingsAccount savings,
+                 CheckingAccount.Account checking) {
+
+            if (!status.equals("ACTIVE")) {
+                System.out.println("Mortgage closed.");
+                return;
+            }
+
+            if (amount <= 0) {
+                System.out.println("Invalid amount.");
+                return;
+            }
+
+            boolean paid = false;
+
+            System.out.println("\nPay using:");
+            System.out.println("[1] Savings");
+            System.out.println("[2] Checking");
+            System.out.print("Choice: ");
+
+            Scanner sc = new Scanner(System.in);
+            String choice = sc.nextLine();
+
+            switch (choice) {
+
+                case "1" -> {
+                    if(savings !=null){
+                    if (savings.getSavings() >= amount) {
+                        savings.setSavings(savings.getSavings() - amount);
+                        paid = true;
+                    }
+                    }
+                }
+
+                case "2" -> {
+                    if (checking != null && checking.balance >= amount) {
+                        checking.balance -= amount;
+                        paid = true;
+                    }
+                }
+            }
+
+            if (!paid) {
+                System.out.println("Insufficient funds.");
+                return;
+            }
+
+            update();
+
+            balance -= amount;
+
+            if (missedPayments > 0) missedPayments--;
+
+            if (balance <= 0) {
+                balance = 0;
+                status = "CLOSED";
+                delinquency = "PAID_OFF";
+            }
+
+            System.out.println("Payment successful.");
+        }
+
+        void display() {
+            update();
+
+            System.out.println("\nID: " + loanID);
+            System.out.println("Balance: $" + balance);
+            System.out.println("Escrow: $" + escrowBalance);
+            System.out.println("Monthly Due: $" + totalDue());
+            System.out.println("Missed: " + missedPayments);
+            System.out.println("Status: " + delinquency);
+        }
+
+        String toCSV() {
+            return String.join(",",
+                    loanID, userID,
+                    String.valueOf(propertyValue),
+                    String.valueOf(downPayment),
+                    String.valueOf(principal),
+                    String.valueOf(balance),
+                    String.valueOf(interestRate),
+                    String.valueOf(termMonths),
+                    String.valueOf(propertyTaxRate),
+                    String.valueOf(insuranceRate),
+                    String.valueOf(escrowBalance),
+                    String.valueOf(missedPayments),
+                    status,
+                    delinquency,
+                    createdDate.toString(),
+                    nextDueDate.toString()
+            );
+        }
+
+        static Mortgage fromCSV(String line) {
+
+            String[] d = line.split(",", -1);
+
+            Mortgage m = new Mortgage(
+                    d[1],
+                    Double.parseDouble(d[2]),
+                    Double.parseDouble(d[3]),
+                    Double.parseDouble(d[6]),
+                    Integer.parseInt(d[7]),
+                    Double.parseDouble(d[8]),
+                    Double.parseDouble(d[9])
+            );
+
+            m.loanID = d[0];
+            m.principal = Double.parseDouble(d[4]);
+            m.balance = Double.parseDouble(d[5]);
+            m.escrowBalance = Double.parseDouble(d[10]);
+            m.missedPayments = Integer.parseInt(d[11]);
+            m.status = d[12];
+            m.delinquency = d[13];
+            m.createdDate = LocalDate.parse(d[14]);
+            m.nextDueDate = LocalDate.parse(d[15]);
+
+            return m;
         }
     }
 
-    public static double getRate(LoanTerm term) {
-        return rates.getOrDefault(term, 6.5);
-    }
+    // =========================
+    // STORAGE
+    // =========================
+    static final String FILE = "mortgage.csv";
 
-    // ===== CREDIT + PRE-APPROVAL =====
-    public static boolean isPreApproved(int creditScore, boolean goodHistory, double income, double debt) {
-        double dti = debt / income;
-        return creditScore >= 620 && goodHistory && dti < 0.43;
-    }
+    static List<Mortgage> load(String userID) throws IOException {
 
-    // ===== MONTHLY PAYMENT CALC =====
-    public static double calculateMonthlyPayment(double loanAmount, double rate, int years) {
-        double monthlyRate = rate / 100 / 12;
-        int payments = years * 12;
+        List<Mortgage> list = new ArrayList<>();
+        File f = new File(FILE);
+        if (!f.exists()) return list;
 
-        return (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, payments)) /
-               (Math.pow(1 + monthlyRate, payments) - 1);
-    }
+        BufferedReader br = new BufferedReader(new FileReader(f));
+        String line;
 
-    // ===== GET YEARS FROM TERM =====
-    public static int getYears(LoanTerm term) {
-        switch (term) {
-            case FIXED_30: return 30;
-            case FIXED_20: return 20;
-            case FIXED_15: return 15;
-            default: return 30; // ARM default
+        while ((line = br.readLine()) != null) {
+            if (line.startsWith("loanID")) continue;
+
+            Mortgage m = Mortgage.fromCSV(line);
+            if (m.userID.equals(userID)) list.add(m);
         }
+
+        br.close();
+        return list;
     }
 
-    // ===== AUTOPAY SYSTEM =====
-    public static void processAutoPay(boolean enabled, double amount) {
-        if (enabled) {
-            System.out.println("Auto-paying: $" + String.format("%.2f", amount));
-        } else {
-            System.out.println("Manual payment required.");
+    static void save(List<Mortgage> list) throws IOException {
+
+        PrintWriter pw = new PrintWriter(new FileWriter(FILE));
+
+        pw.println("loanID,userID,propertyValue,downPayment,principal,balance,interestRate,termMonths,taxRate,insuranceRate,escrow,missed,status,delinquency,created,nextDue");
+
+        for (Mortgage m : list) {
+            pw.println(m.toCSV());
         }
+
+        pw.close();
     }
 
-    // ===== MAIN METHOD =====
-    public static void main(String[] args) {
 
-        Scanner scanner = new Scanner(System.in);
-
-        // Load interest rates
-        loadRatesFromCSV("rates.csv");
-
-        // ===== USER INPUT =====
-        System.out.print("Enter loan amount: ");
-        double loanAmount = scanner.nextDouble();
-
-        System.out.print("Enter down payment: ");
-        double downPayment = scanner.nextDouble();
-
-        CreditCard card = new CreditCard();
-   int creditScore = card.getCreditScore();
-boolean history = card.getMissedPayments() == 0;
-
-        System.out.print("Monthly income: ");
-        double income = scanner.nextDouble();
-
-        System.out.print("Monthly debt: ");
-        double debt = scanner.nextDouble();
-
-        // ===== PRE-APPROVAL CHECK =====
-        if (!isPreApproved(creditScore, history, income, debt)) {
-            System.out.println("You are NOT pre-approved.");
-            return;
+        private static CheckingAccount.Account pickAccount(Scanner sc, List<CheckingAccount.Account> accounts) {
+        // Filter to active only and assign clean display numbers
+        List<CheckingAccount.Account> active = new ArrayList<>();
+        for (CheckingAccount.Account a : accounts) {
+            if (a.isActive) {
+                active.add(a);
+            }
         }
-        System.out.println("You are pre-approved!");
-        System.out.println("\nSelect Loan Type:");
-        System.out.println("1 - Fixed");
-        System.out.println("2 - ARM");
+        if (active.isEmpty()) {
+            System.out.println("  No active checking accounts available.");
+            return null;
+        }
+        System.out.println("  Select a checking account:");
+        for (int i = 0; i < active.size(); i++) {
+            System.out.printf("  [%d] %s  ($%.2f)%n", i + 1, active.get(i).accountID, active.get(i).balance);
+        }
+        System.out.print("  Enter number: ");
+        try {
+            int choice = Integer.parseInt(sc.nextLine().trim());
+            if (choice >= 1 && choice <= active.size()) {
+                return active.get(choice - 1);
+            }
+        } catch (NumberFormatException e) {
+            /* fall through */ }
+        System.out.println("  Invalid choice.");
+        return null;
+    }
+
+    
+
+    // =========================
+    // MENU
+    // =========================
+    static void launch(Scanner sc, User user) throws IOException {
+
+        String userID = user.customerID;
+
+
         
-        int typeChoice = scanner.nextInt();
 
-        LoanType type;
-        if (typeChoice == 1) {
-            type = LoanType.FIXED;
-        } else if (typeChoice == 2) {
-            type = LoanType.ARM;
-        } else {
-         System.out.println("Invalid choice.");
-            return;        
+        SavingsAccount savings = SavingsAccount.OpenSavingsAccount(userID);
+        if (savings == null) {
+            savings = SavingsAccount.createSavingsAccount(userID, 100);
         }
-        // ===== SELECT LOAN =====
-   System.out.println("\nSelect Loan Term:");
-   LoanTerm[] terms = LoanTerm.values();
 
-   for (int i = 0; i < terms.length; i++) {
-    System.out.println((i + 1) + " - " + terms[i]);
-}
+        List<CheckingAccount.Account> checkingAccounts = new ArrayList<>();
+        List<CheckingAccount.CheckingUser> allCheckingUsers = new ArrayList<>();
 
-int termChoice = scanner.nextInt();
+        try {
+            allCheckingUsers = CheckingAccount.readCSV("checking_accounts.csv");
+            CheckingAccount.CheckingUser checkUser = CheckingAccount.findUser(allCheckingUsers, userID);
+            if (checkUser != null) {
+                checkingAccounts = checkUser.accounts;
+            }
+        } catch (IOException e) {
+            System.out.println("  Note: Could not load checking accounts for transfer.");
+        }
 
-if (termChoice < 1 || termChoice > terms.length) {
-    System.out.println("Invalid choice.");
-    return;
-}
+        List<Mortgage> mortgages = load(userID);
 
-LoanTerm term = terms[termChoice - 1];
-        
+        while (true) {
 
-        double rate = getRate(term);
+            System.out.println("\n--- MORTGAGE ---");
+            System.out.println("[1] View");
+            System.out.println("[2] Pay");
+            System.out.println("[3] Create");
+            System.out.println("[0] Exit");
 
-        double finalLoan = loanAmount - downPayment;
+            String c = sc.nextLine();
 
-        int years = getYears(term);
+            switch (c) {
 
-        double monthlyPayment = calculateMonthlyPayment(finalLoan, rate, years);
+                case "1" -> {
+                    for (Mortgage m : mortgages) m.display();
+                    save(mortgages);
+                }
 
-        System.out.println("Loan Type: " + type);
-        System.out.println("Loan Term: " + term);
-        System.out.println("Interest Rate: " + rate + "%");
-        System.out.println("Monthly Payment: $" + String.format("%.2f", monthlyPayment));
+                case "2" -> {
 
-        // ===== AUTOPAY =====
-        System.out.print("Enable autopay? (true/false): ");
-        boolean autopay = scanner.nextBoolean();
+                    if (mortgages.isEmpty()) break;
 
-     System.out.print("Enter starting savings balance: ");
-double balance = scanner.nextDouble();
+                    for (int i = 0; i < mortgages.size(); i++) {
+                        System.out.println("[" + (i + 1) + "] " + mortgages.get(i).loanID);
+                    }
 
-SavingsAccount account = new SavingsAccount("user123", balance);
+                    int idx = Integer.parseInt(sc.nextLine()) - 1;
+                    if (idx < 0 || idx >= mortgages.size()) break;
+                    
+                    Mortgage m = mortgages.get(idx);
 
-    if (autopay) {
-    boolean success = account.withdrawSavings(monthlyPayment);
+                    System.out.print("Amount: ");
+                    double amt = Double.parseDouble(sc.nextLine());
 
-    if (success) {
-        System.out.println("Payment successful.");
-        System.out.println("Remaining balance: $" + account.getSavings());
-    } else {
-        System.out.println("Payment failed (insufficient funds).");
-    }
-} else {
-    System.out.println("Manual payment required.");
-}
+                    if (checkingAccounts.isEmpty()) {
+                        System.out.println("  No checking accounts available.");
+                        break;
+                    }
+                    CheckingAccount.Account from = pickAccount(sc, checkingAccounts);
+                    if (from == null) {
+                        break;
+                    }
 
-        scanner.close();
+                    m.pay(amt, savings, from);
+
+                    save(mortgages);
+                }
+
+                case "3" -> {
+
+                    System.out.print("Property value: ");
+                    double pv = Double.parseDouble(sc.nextLine());
+
+                    System.out.print("Down payment: ");
+                    double dp = Double.parseDouble(sc.nextLine());
+
+                    System.out.print("Interest rate: ");
+                    double ir = Double.parseDouble(sc.nextLine());
+
+                    System.out.print("Term months: ");
+                    int tm = Integer.parseInt(sc.nextLine());
+
+                    mortgages.add(new Mortgage(userID, pv, dp, ir, tm, 0.015, 0.01));
+
+                    save(mortgages);
+                    System.out.println("Created.");
+                }
+
+                case "0" -> {
+                    return;
+                }
+            }
+        }
     }
 }
