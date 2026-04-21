@@ -146,6 +146,9 @@ public class CommercialLoan{
     public void saveLoanInformation() {
         CommercialLoanWriter writer = new CommercialLoanWriter();
         try {
+            if(proceedToApproval) {
+                writer.addToCSV(this);
+            }
             writer.saveLoanInformation(this);
         } catch (Exception e) {
             System.out.println("Error occurred saving loan information: " + e.getMessage());
