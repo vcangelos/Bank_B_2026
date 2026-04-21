@@ -511,7 +511,6 @@ public class menu {
             case "Money Market" -> {
                 try {
                     moneyMarket.launch(sc, currentUser);
-                    db.updateUser(currentUser); // sync balance changes back to customerInfo.csv
                 } catch (Exception e) {
                     System.out.println("  Error loading Money Market module: " + e.getMessage());
                     pause();
