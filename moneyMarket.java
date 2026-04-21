@@ -42,7 +42,7 @@ public class moneyMarket {
     /* Static Final variables */
     private static final Path csvPath = Path.of("Money.csv"); // fine the path for the CSV file
     private static final Path csvPathFee = Path.of("MoneyFee.csv"); // measuring monthly
-    private static final Path csvCustomerInfo = Path.of("customerInfo.csv");
+    private static final Path csvCustomerInfo = Path.of("customerinfo.csv");
     private static final Path csvEmployeecsv = Path.of("employeecards.csv");
     private static final Path csvEmployeeMoneyMarketcsv = Path.of("EmployeeMoneyMarket.csv");
     private final Path isEmployeeCSV = isEmployee ? csvEmployeeMoneyMarketcsv : csvPath;
@@ -185,7 +185,7 @@ public class moneyMarket {
                 if (columnsplit.length == 0) {
                     continue; // skip malformed lines
 
-                }if (columnsplit[0].trim().equals(MoneyID.trim())) {
+                                }if (columnsplit[0].trim().equals(MoneyID.trim())) {
                     return true; // moneyID found
                 }
             }
@@ -313,7 +313,7 @@ public class moneyMarket {
             return null;
         }
         moneyMarket account = null; //added null so nothing bad can happen such as unitialization.
-        if (MoneyMarketamount >= minimumbalance && MoneyMarketamount <= maximumbalance) {
+        if (MoneyMarketamount == minimumbalance) {
             account = new moneyMarket();
             account.userID = userID;
             account.setMoneyID(MoneyID);
@@ -339,15 +339,7 @@ public class moneyMarket {
         Path currentCSV = isEmployee(userID) ? csvEmployeeMoneyMarketcsv : csvPath;
         try (BufferedWriter bw = Files.newBufferedWriter(currentCSV, StandardOpenOption.APPEND)) {
 
-            bw.write(String.join(",",
-                    account.userID,
-                    account.MoneyID,
-                    String.valueOf(account.balance),
-                    account.driversLicense,
-                    date,
-                    account.birthcertificate,
-                    "ACTIVE"
-            ));
+            bw.write(account.userID + "," + account.MoneyID + "," + account.balance + "," + account.driversLicense + "," + date + "," + account.birthcertificate + "," + "ACTIVE" + ",");
             bw.newLine(); // make a new line when written.
         }
         writefeeUser(account.MoneyID);
@@ -794,9 +786,9 @@ public class moneyMarket {
             LocalDate dob = null;
 
             DateTimeFormatter[] formats = new DateTimeFormatter[]{
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd"),
-                    DateTimeFormatter.ofPattern("dd-MM-yyyy"),
-                    DateTimeFormatter.ofPattern("MM/dd/yyyy")
+                DateTimeFormatter.ofPattern("yyyy-MM-dd"),
+                DateTimeFormatter.ofPattern("dd-MM-yyyy"),
+                DateTimeFormatter.ofPattern("MM/dd/yyyy")
             };
 
             for (DateTimeFormatter f : formats) {
@@ -933,43 +925,46 @@ public class moneyMarket {
 
     }
 
-    //END
-    public void setMoneyID(String MoneyID) {
-        this.MoneyID = MoneyID;
-    }
-
-    public static String getSocialSecurity(String userID) throws IOException {
+    public static String getSocialSecurity(String userID) throws IOException { // Grab phone number by searching through CSV
         try (BufferedReader readfile = Files.newBufferedReader(csvCustomerInfo)) {
-
             String line;
             while ((line = readfile.readLine()) != null) {
+                boolean valid = true;
+                String[] dataline = line.split(",", -1);
+                if (dataline.length > 0 && dataline[0].trim().equals(userID)) {
+                    String socialSecurity = dataline.length > 3 ? dataline[3] : ""; //social security is in the fourth column. 
+                    socialSecurity = socialSecurity.replaceAll("[^0-9]", "");
+                    if (socialSecurity.length() == 9) { //it has to be equal to 9 otherwise return a null to interrupt account creation
 
-                String[] data = line.split(",", -1);
-
-                if (data.length > 3 && data[0].trim().equals(userID)) {
-
-                    String ssn = data[3].trim();
-
-                    // normalize 123-45-6789 → 123456789
-                    ssn = ssn.replaceAll("[^0-9]", "");
-
-                    if (ssn.length() == 9) {
-                        return ssn;
+                        for (int i = 0; i < socialSecurity.length(); i++) { //just in case replaceall missed something.
+                            if (!Character.isDigit(socialSecurity.charAt(i))) { //this is copied from phone number code.
+                                valid = false;
+                                break;//break out of here and return a null few lines down if there is a character inside a socialsecurity number
+                            }
+                        }
+                        if (valid) { //valid helps us here by checking if characters are in the digits or not
+                            return socialSecurity;
+                        }
                     }
                 }
             }
         }
         return null;
     }
+    //END
 
-    public double depositMoneyMarket(double depositamt) throws IOException {
+    public void setMoneyID(String MoneyID) {
+        this.MoneyID = MoneyID;
+    }
+
+    public double depositMoneyMarket(double depositamt) throws IOException { //how much you deposit.
         if (depositamt > 0) {
-            balance += depositamt;
             writeMoneyCSV(userID, MoneyID, balance, isEmployee);
             logTransaction("DEPOSIT", depositamt);
-            return balance;
+            return balance += depositamt;
+            
         } else {
-            System.out.println("Deposit must be positive.");
+            System.out.println("Deposit has to be a positive.");
         }
         return balance;
     }
@@ -1070,7 +1065,7 @@ public class moneyMarket {
 
                 if (data[0].trim().equals(MoneyID)) {
                     found = true;
-
+                    
 
                     int withdrawCount = readSafeInt(data, 5, 0);
                     LocalDate lastReset = readSafeLocalDate(data, 6, today);
@@ -1144,13 +1139,13 @@ public class moneyMarket {
             }
         }
 
-        Files.move(temp, csvPathFee, StandardCopyOption.REPLACE_EXISTING);
-        return success;
+       Files.move(temp, csvPathFee, StandardCopyOption.REPLACE_EXISTING);
+       return success;
     }
 
+    
 
-
-    public double transfer(CheckingAccount.Account fromAccount, Scanner scanner, boolean fromsource, double externalValue) throws IOException {
+public double transfer(CheckingAccount.Account fromAccount, Scanner scanner, boolean fromsource, double externalValue) throws IOException {
 
         while (true) {
 
@@ -1190,7 +1185,7 @@ public class moneyMarket {
                 fromAccount.updateFlags();
 
                 System.out.printf("  Moved $%.2f: Money Market ($%.2f) <- checking %s ($%.2f)%n",
-                        amount, getMoneyMarket(), fromAccount.accountID, fromAccount.balance);
+                amount, getMoneyMarket(), fromAccount.accountID, fromAccount.balance);
 
             } else if (fromsource && fromAccount == null) {
 
@@ -1225,7 +1220,7 @@ public class moneyMarket {
                 fromAccount.updateFlags();
 
                 System.out.printf("  Moved $%.2f: Money Market ($%.2f) -> checking %s ($%.2f)%n",
-                        amount, getMoneyMarket(), fromAccount.accountID, fromAccount.balance);
+                amount, getMoneyMarket(), fromAccount.accountID, fromAccount.balance);
 
             } //from SAVINGS to External value.
             else {
@@ -1252,7 +1247,7 @@ public class moneyMarket {
     public void update() throws IOException {
         yearlyFee();
         monthlyFee();
-        minBalanceFee();
+        minBalanceFee();        
         applyInterest();
         String state = updateNegativeBalance();
         if (state.equalsIgnoreCase("CLOSED")) {
