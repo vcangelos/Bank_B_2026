@@ -2,6 +2,9 @@ import java.util.Scanner;
 import java.util.regex.Pattern;
 import java.security.MessageDigest;
 import java.util.Base64;
+import java.util.ArrayList;
+import java.util.List;
+import java.io.IOException;
 
 public class menu {
     private final Scanner sc;
@@ -30,7 +33,7 @@ public class menu {
     private String hashPassword(String password) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
-                byte[] hash = md.digest(password.getBytes());
+            byte[] hash = md.digest(password.getBytes());
             return Base64.getEncoder().encodeToString(hash);
         } catch (Exception e) {
             return password; // fallback — should never happen with SHA-256
@@ -465,7 +468,8 @@ public class menu {
             System.out.println("  [2] Savings");
             System.out.println("  [3] Loans");
             System.out.println("  [4] Investments");
-            System.out.println("  [5] Account Settings");
+            System.out.println("  [5] Services");
+            System.out.println("  [6] Account Settings");
             System.out.println("  [0] Log Out");
             printLine();
 
@@ -475,14 +479,15 @@ public class menu {
                 case "2" -> launchModule("Savings");
                 case "3" -> launchModule("Loans");
                 case "4" -> launchModule("Investments");
-                case "5" -> settingsScreen();
+                case "5" -> launchModule("Services");
+                case "6" -> settingsScreen();
                 case "0" -> { System.out.println("\n  Logged out."); pause(); return; }
                 default  -> System.out.println("  Invalid option.");
             }
         }
     }
 
-    // ok from here just run the code that deals with the module
+    // Launch module based on module name
     private void launchModule(String moduleName) {
         switch (moduleName) {
             case "Checking" -> {
@@ -500,6 +505,40 @@ public class menu {
                     db.updateUser(currentUser); // sync balance changes back to customerInfo.csv
                 } catch (Exception e) {
                     System.out.println("  Error loading Savings module: " + e.getMessage());
+                    pause();
+                }
+            }
+            case "Loans" -> {
+                try {
+                    LoansModule.launch(sc, currentUser);
+                    db.updateUser(currentUser); // sync balance changes back to customerInfo.csv
+                } catch (Exception e) {
+                    System.out.println("  Error loading Loans module: " + e.getMessage());
+                    pause();
+                }
+            }
+            case "Investments" -> {
+                try {
+                    InvestmentsModule.launch(sc, currentUser);
+                    db.updateUser(currentUser);
+                } catch (Exception e) {
+                    System.out.println("  Error loading Investments module: " + e.getMessage());
+                    pause();
+                }
+            }
+            case "Services" -> {
+                try {
+                    // Load checking users for debit card operations
+                    List<CheckingAccount.CheckingUser> checkingUsers = new ArrayList<>();
+                    try {
+                        checkingUsers = CheckingAccount.readCSV("checking_accounts.csv");
+                    } catch (Exception e) {
+                        System.out.println("  Note: Could not load checking accounts for services.");
+                    }
+                    ServicesModule.launch(sc, currentUser, checkingUsers);
+                    db.updateUser(currentUser);
+                } catch (Exception e) {
+                    System.out.println("  Error loading Services module: " + e.getMessage());
                     pause();
                 }
             }

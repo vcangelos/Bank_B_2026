@@ -16,7 +16,7 @@ import java.util.*;
  * - Applies NJ sales tax (6.625%) to vehicle price
  * - Checks if customer already has an existing auto loan (via AutomobileLoan.csv)
  * - Calculates monthly payment using standard amortization formula
- * - Supports payment from checking (via BankingCSV) or savings (via SavingsAccount)
+ * - Supports payment from checking (via CheckingAccount) or savings (via SavingsAccount)
  * - Tracks missed payments and delinquency status
  * - Auto pay system
  * - Saves all loan data to AutomobileLoan.csv
@@ -28,16 +28,16 @@ public class AutomobileLoan {
     // ----------------------------------------------------------
 
     // NJ Sales Tax rate (6.625%)
-    
+    private static final double NJ_SALES_TAX = 0.06625;
 
     // Loan file
     private static final String FILE = "AutomobileLoan.csv";
     private static final String HEADER =
-        "loanID,customerID,customerName,carMake,carModel,carYear,carCondition," +
-        "vehiclePrice,downPayment,principal," +
-        "interestRate,termMonths,monthlyPayment,remainingBalance," +
-        "totalPaid,paymentsMade,missedPayments,delinquency,status," +
-        "autoPayEnabled,creditScore,startDate";
+            "loanID,customerID,customerName,carMake,carModel,carYear,carCondition," +
+                    "vehiclePrice,salesTax,totalVehicleCost,downPayment,principal," +
+                    "interestRate,termMonths,monthlyPayment,remainingBalance," +
+                    "totalPaid,paymentsMade,missedPayments,delinquency,status," +
+                    "autoPayEnabled,creditScore,startDate";
 
     // Delinquency thresholds (matches MortgageLoan pattern)
     private static final int DAYS_30 = 1;
@@ -60,8 +60,8 @@ public class AutomobileLoan {
 
     // Financial info
     private double vehiclePrice;
-    
-    
+    private double salesTax;
+    private double totalVehicleCost;
     private double downPayment;
     private double principal;        // totalVehicleCost - downPayment
     private double interestRate;
@@ -104,10 +104,10 @@ public class AutomobileLoan {
         this.carCondition  = carCondition;
 
         this.vehiclePrice     = round(vehiclePrice);
-        
-        
+        this.salesTax         = round(vehiclePrice * NJ_SALES_TAX);
+        this.totalVehicleCost = round(vehiclePrice + salesTax);
         this.downPayment      = round(downPayment);
-        this.principal = round(this.vehiclePrice - this.downPayment);
+        this.principal = round(this.totalVehicleCost - this.downPayment);
 
         this.termMonths    = termMonths;
         this.creditScore   = creditScore;
@@ -250,7 +250,7 @@ public class AutomobileLoan {
      * Makes a monthly payment from the customer's checking account.
      * Follows PersonalLoan.java pattern.
      */
-    public boolean payFromChecking(BankingCSV.User user, double amount) {
+    public boolean payFromChecking(CheckingAccount.CheckingUser user, double amount) {
         if (!status.equals("ACTIVE")) {
             System.out.println("Loan is not active.");
             return false;
@@ -264,7 +264,7 @@ public class AutomobileLoan {
             return false;
         }
 
-        BankingCSV.Account acc = user.accounts.get(0);
+        CheckingAccount.Account acc = user.accounts.get(0);
         if (acc.balance < amount) {
             System.out.println("Insufficient funds in checking.");
             missedPayments++;
@@ -283,7 +283,7 @@ public class AutomobileLoan {
     /**
      * Makes a monthly payment from the customer's savings account.
      */
-    public boolean payFromSavings(SavingsAccount savings, double amount) throws IOException {
+    public boolean payFromSavings(CheckingAccount.SavingsAccount savings, double amount) throws IOException {
         if (!status.equals("ACTIVE")) {
             System.out.println("Loan is not active.");
             return false;
@@ -296,16 +296,14 @@ public class AutomobileLoan {
             System.out.println("Payment must be greater than $0.");
             return false;
         }
-        if (savings.getSavings() < amount) {
+        if (savings.balance < amount) {
             System.out.println("Insufficient funds in savings.");
             missedPayments++;
             updateDelinquency();
             return false;
         }
 
-        savings.withdrawSavings(amount);
-        SavingsAccount.writeSavingsCSV(savings.getUserid(),
-                savings.getSavingsID(), savings.getSavings());
+        savings.balance -= amount;
         return applyPayment(amount);
     }
 
@@ -317,8 +315,8 @@ public class AutomobileLoan {
      * Automatically pays the monthly amount from checking.
      * Falls back to savings if checking has insufficient funds.
      */
-    public boolean runAutoPay(BankingCSV.User user,
-                               SavingsAccount savings) throws IOException {
+    public boolean runAutoPay(CheckingAccount.CheckingUser user,
+                              CheckingAccount.SavingsAccount savings) throws IOException {
         if (!autoPayEnabled) {
             System.out.println("Auto pay is disabled for this loan.");
             return false;
@@ -334,8 +332,12 @@ public class AutomobileLoan {
         }
 
         // Fall back to savings
-        if (savings != null && savings.getSavings() >= due) {
-            return payFromSavings(savings, due);
+        if (savings != null && savings.balance >= due) {
+            try {
+                return payFromSavings(savings, due);
+            } catch (IOException e) {
+                System.out.println("Error processing savings payment: " + e.getMessage());
+            }
         }
 
         System.out.println("Auto pay failed: insufficient funds in checking and savings.");
@@ -403,8 +405,8 @@ public class AutomobileLoan {
         System.out.println("----------------------------------------");
         System.out.println("FINANCIAL DETAILS:");
         System.out.printf( "  Vehicle Price:  $%,.2f%n", vehiclePrice);
-        
-        
+        System.out.printf( "  NJ Sales Tax:   $%,.2f%n", salesTax);
+        System.out.printf( "  Total Cost:     $%,.2f%n", totalVehicleCost);
         System.out.printf( "  Down Payment:   $%,.2f%n", downPayment);
         System.out.printf( "  Loan Principal: $%,.2f%n", principal);
         System.out.printf( "  Interest Rate:  %.2f%%%n", interestRate * 100);
@@ -635,23 +637,17 @@ public class AutomobileLoan {
      * Call this from your main menu (Mario's menu.java).
      */
     public static void launch(Scanner sc, User user,
-                               List<BankingCSV.User> bankingUsers) throws IOException {
+                              List<CheckingAccount.CheckingUser> checkingUsers) throws IOException {
 
         String customerID   = user.customerID;
         String customerName = user.firstName + " " + user.lastName;
 
         // Load savings
-        SavingsAccount savings = null;
-        try {
-            if (SavingsAccount.userIDExists(customerID)) {
-                savings = SavingsAccount.OpenSavingsAccount(customerID);
-            }
-        } catch (IOException e) {
-            System.out.println("Note: Could not load savings account.");
-        }
+        CheckingAccount.SavingsAccount savings = null;
+        // Would need to load from CSV if necessary
 
         // Load checking
-        BankingCSV.User bankUser = BankingCSV.findUser(bankingUsers, customerID);
+        CheckingAccount.CheckingUser checkUser = CheckingAccount.findUser(checkingUsers, customerID);
 
         // Load existing loans
         List<AutomobileLoan> loans = loadLoans(customerID);
@@ -764,10 +760,10 @@ public class AutomobileLoan {
                     }
 
                     // Calculate estimated monthly payment for DTI check
-                    double tempPrincipal = round(price - downPay);
+                    double tempPrincipal = round(price + (price * NJ_SALES_TAX) - downPay);
                     double r = rate / 12.0;
-                    double estMonthly = round((tempPrincipal * r) /
-                            (1 - Math.pow(1 + r, -term)));
+                    double estMonthly = (r == 0) ? round(tempPrincipal / term) :
+                            round((tempPrincipal * r) / (1 - Math.pow(1 + r, -term)));
 
                     // Check approval
                     if (!isApproved(creditScore, income, debt, estMonthly)) {
@@ -817,9 +813,9 @@ public class AutomobileLoan {
                     String payChoice = sc.nextLine().trim();
 
                     if (payChoice.equals("1")) {
-                        selected.payFromChecking(bankUser, selected.getCurrentMonthlyDue());
-                        if (bankUser != null) {
-                            BankingCSV.writeCSV("checking_accounts.csv", bankingUsers);
+                        selected.payFromChecking(checkUser, selected.getCurrentMonthlyDue());
+                        if (checkUser != null) {
+                            CheckingAccount.writeCSV("checking_accounts.csv", checkingUsers);
                         }
                     } else if (payChoice.equals("2")) {
                         selected.payFromSavings(savings, selected.getCurrentMonthlyDue());
@@ -830,10 +826,10 @@ public class AutomobileLoan {
 
                 case "4" -> {
                     for (AutomobileLoan loan : loans) {
-                        loan.runAutoPay(bankUser, savings);
+                        loan.runAutoPay(checkUser, savings);
                     }
-                    if (bankUser != null) {
-                        BankingCSV.writeCSV("checking_accounts.csv", bankingUsers);
+                    if (checkUser != null) {
+                        CheckingAccount.writeCSV("checking_accounts.csv", checkingUsers);
                     }
                 }
 

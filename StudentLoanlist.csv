@@ -1,1 +1,1 @@
-userid,loan 
+LoanID,UserID,Principal,InterestRate,TermMonths,AutoPay
