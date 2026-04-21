@@ -108,13 +108,9 @@ public class ATM {
                             if (amt <= 0) {
                                 System.out.println("Invalid amount.");
                             } else {
-                                if (user.transferToSavings(selectedAccount, amt)) {
-                                    System.out.println("Transfer failed.");
-                                } else {
-                                    CheckingAccount.writeCSV(checkingPath, users);
-                                    CheckingAccount.writeSavingsCSV(savingsPath, users);
-                                }
-
+                                user.transferToSavings(selectedAccount, amt);
+                                CheckingAccount.writeCSV(checkingPath, users);
+                                CheckingAccount.writeSavingsCSV(savingsPath, users);
                             }
                         }
                         break;
