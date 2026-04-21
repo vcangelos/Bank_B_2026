@@ -464,10 +464,11 @@ public class menu {
             System.out.println("  Select an account or service:");
             System.out.println("  [1] Checking");
             System.out.println("  [2] Savings");
-            System.out.println("  [3] Loans");
-            System.out.println("  [4] Investments");
-            System.out.println("  [5] Services");
-            System.out.println("  [6] Account Settings");
+            System.out.println("  [3] Money Market");
+            System.out.println("  [4] Loans");
+            System.out.println("  [5] Investments");
+            System.out.println("  [6] Services");
+            System.out.println("  [7] Account Settings");
             System.out.println("  [0] Log Out");
             printLine();
 
@@ -475,10 +476,11 @@ public class menu {
             switch (choice) {
                 case "1" -> launchModule("Checking");
                 case "2" -> launchModule("Savings");
-                case "3" -> launchModule("Loans");
-                case "4" -> launchModule("Investments");
-                case "5" -> launchModule("Services");
-                case "6" -> settingsScreen();
+                case "3" -> launchModule("Money Market");
+                case "4" -> launchModule("Loans");
+                case "5" -> launchModule("Investments");
+                case "6" -> launchModule("Services");
+                case "7" -> settingsScreen();
                 case "0" -> { System.out.println("\n  Logged out."); pause(); return; }
                 default  -> System.out.println("  Invalid option.");
             }
@@ -503,6 +505,15 @@ public class menu {
                     db.updateUser(currentUser); // sync balance changes back to customerInfo.csv
                 } catch (Exception e) {
                     System.out.println("  Error loading Savings module: " + e.getMessage());
+                    pause();
+                }
+            }
+            case "Money Market" -> {
+                try {
+                    moneyMarket.launch(sc, currentUser);
+                    db.updateUser(currentUser); // sync balance changes back to customerInfo.csv
+                } catch (Exception e) {
+                    System.out.println("  Error loading Money Market module: " + e.getMessage());
                     pause();
                 }
             }
