@@ -348,7 +348,6 @@ public class menu {
         System.out.println("  [3] Philadelphia    — (215) 555-0303");
         System.out.println("  [4] Los Angeles     — (310) 555-0404");
         System.out.println("  [5] Chicago         — (312) 555-0505");
-        System.out.println("  [6] Diddy's Bank    — (917) 555-0666");
         System.out.println();
 
         String bankLocation = "";
@@ -361,9 +360,8 @@ public class menu {
                 case "3" -> { bankLocation = "Philadelphia"; bankPhoneNumber = "(215) 555-0303"; }
                 case "4" -> { bankLocation = "Los Angeles";  bankPhoneNumber = "(310) 555-0404"; }
                 case "5" -> { bankLocation = "Chicago";      bankPhoneNumber = "(312) 555-0505"; }
-                case "6" -> { bankLocation = "Diddy's Bank"; bankPhoneNumber = "(917) 555-0666"; }
                 case "0" -> { return; }
-                default  -> { System.out.println("  Invalid: Enter 1 through 6."); continue; }
+                default  -> { System.out.println("  Invalid: Enter 1 through 5."); continue; }
             }
             break;
         }
